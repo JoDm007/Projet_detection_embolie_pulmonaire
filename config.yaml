@@ -1,0 +1,41 @@
+# config.yaml
+
+project:
+  name: "FUMPE Embolie Detection"
+  version: "1.0.0"
+  seed: 42  #  Pour reproductibilité (split, torch, numpy)
+
+data:
+  raw_path: "data/raw"
+  processed_path: "data/processed"
+  splits_path: "data/splits"
+  figures_path: "figures"
+  logs_path: "logs"
+
+preprocessing:
+  # Fenêtrage Hounsfield (Validé dans Notebook 02)
+  hu_window: [-600, 600]  # Fenêtre pulmonaire
+  
+  # Resampling (Critique pour CNN 3D)
+  target_spacing: [1.0, 1.0, 1.0]  # Isotropique 1mm³ (Z, Y, X)
+  
+  # Normalisation
+  normalize: true  # Min-Max scaling vers [0, 1]
+  
+  # Taille d'entrée pour le Deep Learning (optionnel si padding)
+  target_size: [512, 512]  # XY seulement, Z géré par spacing
+
+split:
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+  stratify: false  #  À mettre à true dès qu'on aura des métadonnées de sévérité
+
+model:
+  # Placeholder pour les Objectifs 4 & 5
+  type: "CNN3D"  # ou "SVM", "RandomForest"
+  input_channels: 1
+  num_classes: 2
+  learning_rate: 0.001
+  batch_size: 4
+  epochs: 50

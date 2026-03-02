@@ -1,0 +1,19 @@
+#Environnement virtuel
+EP_env/
+
+# Données (Trop lourd pour GitHub)
+data/
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+.env
+
+# IDE
+.idea/
+.vscode/
+
+# Système
+.DS_Store

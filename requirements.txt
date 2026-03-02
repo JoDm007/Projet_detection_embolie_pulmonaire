@@ -1,0 +1,37 @@
+# Core; Manipulation de données et calcul
+numpy
+pandas
+scipy
+pyyaml  # pour config.yaml
+
+# Visualisation
+matplotlib
+seaborn
+plotly
+
+# Images médicales
+nibabel  # pour NIfTI
+pydicom  # pour DICOM
+SimpleITK  # pour manipulations avancées
+medpy  # métriques médicales (Dice, etc.)
+
+# Traitement d'images
+scikit-image
+opencv-python
+pillow
+
+# Radiomics (Objectif 3)
+#pyradiomics  # extraction de features radiomiques
+
+# Machine learning classique (Objectif 4)
+scikit-learn
+
+# Deep learning (Objectif 5)
+#tensorflow
+# OU torch torchvision 
+# tensorboard pour visualisation
+
+# Utilitaires
+tqdm
+joblib # pour sauvegarder les modèles
+logging
