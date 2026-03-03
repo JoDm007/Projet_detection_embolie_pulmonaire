@@ -62,7 +62,7 @@ def load_dicom_volume(directory: str) -> Tuple[Optional[np.ndarray], Optional[Di
         return None, None
 
 
-def load_mask_mat(mat_path: str) -> Tuple[Optional[np.ndarray], Optional[Dict]]:
+def load_mask(mat_path: str) -> Tuple[Optional[np.ndarray], Optional[Dict]]:
     """
     Charge le masque (.mat), le binarise et s'assure de l'orientation (Z, Y, X).
     """
@@ -78,7 +78,12 @@ def load_mask_mat(mat_path: str) -> Tuple[Optional[np.ndarray], Optional[Dict]]:
         data = loadmat(mat_path)
         
         # 🔍 Liste étendue des clés possibles (FUMPE + variantes)
-        possible_keys = ['pixel_labels', 'Label', 'mask', 'Mask', 'ground_truth', 'GT', 'seg']
+        # ✅ Ajout de 'Mask' avec majuscule (spécifique à FUMPE)
+        possible_keys = [
+            'pixel_labels', 'Label', 'mask', 'Mask',  # ← 'Mask' ajouté !
+            'ground_truth', 'GT', 'seg', 'segmentation', 
+            'annotation', 'truth', 'binary_mask'
+        ]
         mask = None
         
         for key in possible_keys:
@@ -87,7 +92,7 @@ def load_mask_mat(mat_path: str) -> Tuple[Optional[np.ndarray], Optional[Dict]]:
                 logger.info(f"✅ Masque chargé avec clé '{key}'")
                 break
         
-        # Fallback : prendre la première clé valide
+        # Fallback : prendre la première clé valide (tableau numpy)
         if mask is None:
             for key in data.keys():
                 if not key.startswith('__'):
@@ -98,6 +103,7 @@ def load_mask_mat(mat_path: str) -> Tuple[Optional[np.ndarray], Optional[Dict]]:
                         break
         
         if mask is None: 
+            # ✅ DEBUG : Afficher les clés disponibles pour aider au débogage
             logger.warning(f"⚠️ Aucune clé de masque trouvée. Clés disponibles: {list(data.keys())}")
             return None, None
         
