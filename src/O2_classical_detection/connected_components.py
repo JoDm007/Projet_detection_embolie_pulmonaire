@@ -131,8 +131,12 @@ def extract_candidates_3d(mask: np.ndarray,
             'intensity_skewness': float(skew(intensities.flatten())),
             'intensity_kurtosis': float(kurtosis(intensities.flatten())),
             'intensity_energy': float((intensities**2).sum()),
-            'intensity_entropy': float(-(intensities * np.log(intensities + 1e-7)).sum())
+            #'intensity_entropy': float(-(intensities * np.log(intensities + 1e-7)).sum())
         })
+        # Normalisons les intensités avant le calcul d'entropie
+        intensities_norm = (intensities - intensities.min()) / (intensities.max() - intensities.min() + 1e-7)
+        intensities_norm = np.clip(intensities_norm, 1e-7, 1.0)  # Éviter log(0)
+        features['intensity_entropy'] = float(-(intensities_norm * np.log(intensities_norm)).sum())
         
         # 6. Features de texture (si demandé)
         if compute_texture and region.area > 100:  # Nécessite une région assez grande
