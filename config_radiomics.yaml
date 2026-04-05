@@ -1,0 +1,25 @@
+# Configuration de base pour PyRadiomics (CT Scan - Thorax)
+
+imageType:
+  Original: {}
+
+featureClass:
+  shape: 
+  firstorder: 
+  glcm:
+  glrlm:
+
+setting:
+  # Normalisation (optionnel)
+  normalize: false
+  
+  # Resampling: Pour uniformiser les volumes (utiliser 1x1x1 mm3)
+  interpolator: 'sitkBSpline'
+  resampledPixelSpacing: [1, 1, 1]
+  
+  # Discrétisation des niveaux de gris (binWidth = 25 HU est un standard robuste pour CT)
+  binWidth: 25
+  
+  # Pour éviter les calculs trop lourds sur le fond d'air
+  padDistance: 10
+  voxelArrayShift: 1000 # Parfois utile si les valeurs HU sont négatives

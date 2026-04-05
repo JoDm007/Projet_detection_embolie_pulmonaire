@@ -8,7 +8,7 @@ Voici la feuille de route complète de ton projet. Elle lie chaque **Objectif** 
 
 * **Fichiers `src/O1_preprocessing/**` : `loader.py` (Chargement), `normalisation.py` (Fenêtrage), `resampling.py` (Iso-résolution), `split_data.py` (Train/Val/Test).
 * **Notebook** : `01_exploration.ipynb` (Visualisation brute) et `02_preprocessing_demo.ipynb` (Validation du pipeline).
-* **Résultat** : Tes données passent de `data/raw/` (.dcm/.mat) à `data/processed/` (.npy).
+* **Résultat** : Nos données passeneront de `data/raw/` (.dcm/.mat) à `data/processed/` (.npy).
 
 ### Objectif 2 : Détection Classique (Vaisseaux & PE)
 
@@ -32,7 +32,7 @@ Voici la feuille de route complète de ton projet. Elle lie chaque **Objectif** 
 
 * **Fichiers `src/O5_deep_learning/**` : `unet_3d.py` (Architecture), `data_generator.py` (Lecture des .npy), `train.py`.
 * **Notebook** : `06_deep_learning_demo.ipynb`.
-* **Résultat** : Ton modèle de pointe (U-Net ou CNN) entraîné.
+* **Résultat** : Le modèle de pointe (U-Net ou CNN) entraîné.
 
 ### Objectif 6 : Évaluation des Performances
 
@@ -52,3 +52,39 @@ Voici la feuille de route complète de ton projet. Elle lie chaque **Objectif** 
 * **Résultat** : Rapport sur les limites du modèle (ex: "L'IA a du mal sur les embolies distales de moins de 2mm").
 
 ---
+
+Pour faire  le **push** sur Git 
+### 1. Le cas classique (le plus courant)
+
+déjà lié le dépôt et que tu es sur la branche `main` (ou `master`) :
+
+```bash
+git push origin main
+
+```
+
+---
+
+### 2. Si c'est ton tout premier push
+
+Si tu viens de créer le dépôt et que tu dois configurer la branche distante par défaut :
+
+```bash
+git set-upstream origin main
+# OU plus court :
+git push -u origin main
+
+```
+
+*L'option `-u` permet de mémoriser la destination. La prochaine fois, tu n'auras qu'à taper `git push`.*
+
+---
+
+### 3. Le flux complet (Rappel)
+
+N'oublie pas que pour que le push fonctionne, tes fichiers doivent être indexés et "commités" :
+
+1. **`git add .`** (Prépare tous les fichiers)
+2. **`git commit -m "Ton message ici"`** (Enregistre les modifications)
+3. **`git push origin main`** (Envoie sur le serveur)
+

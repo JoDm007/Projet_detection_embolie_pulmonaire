@@ -14,6 +14,9 @@ __pycache__/
 # IDE
 .idea/
 .vscode/
+.zencoder/
+.zenflow/
 
 # Système
 .DS_Store
+docs/

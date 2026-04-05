@@ -289,6 +289,78 @@ def verify_split_integrity(split_dict: Dict) -> bool:
     logger.info("✅ Aucun chevauchement détecté entre les splits")
     return True
 
+
+if __name__ == "__main__":
+    print("="*60)
+    print("🧪 TEST DU MODULE SPLIT_DATA")
+    print("="*60)
+    
+    # Créer un dossier temporaire avec des faux patients
+    test_dir = "data/temp_test"
+    os.makedirs(test_dir, exist_ok=True)
+    
+    for i in range(1, 51): # 50 faux patients
+        os.makedirs(os.path.join(test_dir, f"PAT{i:03d}"), exist_ok=True)
+    
+    # Chemins des fichiers de test à nettoyer après
+    test_outputs = [
+        "data/splits/test_split.json",
+        "data/splits/test_cv"
+    ]
+    
+    try:
+        # Test split simple
+        print("\n📊 Test 1: Split aléatoire simple")
+        split = create_split(
+            data_dir=test_dir,
+            output_json="data/splits/test_split.json",
+            train_ratio=0.7,
+            val_ratio=0.15,
+            seed=42
+        )
+        
+        # Afficher les résultats
+        print(f"\nRésultats:")
+        for split_name in ["train", "val", "test"]:
+            print(f"  {split_name}: {len(split[split_name])} patients")
+        
+        # Vérifier l'intégrité
+        verify_split_integrity(split)
+        
+        # Test chargement
+        print("\n📂 Test 2: Chargement du split")
+        loaded = load_split("data/splits/test_split.json")
+        print(f"  Split chargé: {loaded['metadata']['total_patients']} patients")
+        
+        # Test cross-validation
+        print("\n🔄 Test 3: Cross-validation splits")
+        cv_folds = create_cv_splits(
+            data_dir=test_dir,
+            n_folds=5,
+            output_dir="data/splits/test_cv"
+        )
+        print(f"  {len(cv_folds)} folds créés")    
+
+    finally:
+        # Nettoyage COMPLET
+        import shutil
+        
+        # 1. Supprimer les faux patients
+        shutil.rmtree(test_dir, ignore_errors=True)
+        
+        # 2. Supprimer les fichiers de split générés par le test
+        for output in test_outputs:
+            output_path = Path(output)
+            if output_path.is_file():
+                output_path.unlink()
+                print(f"🗑️ Supprimé: {output}")
+            elif output_path.is_dir():
+                shutil.rmtree(output_path, ignore_errors=True)
+                print(f"🗑️ Supprimé dossier: {output}")
+        
+        print("\n✅ Tests terminés - Environnement nettoyé !")
+
+"""
 if __name__ == "__main__":
     print("="*60)
     print("🧪 TEST DU MODULE SPLIT_DATA")
@@ -339,3 +411,4 @@ if __name__ == "__main__":
         import shutil
         shutil.rmtree(test_dir, ignore_errors=True)
         print("\n✅ Tests terminés!")
+        """

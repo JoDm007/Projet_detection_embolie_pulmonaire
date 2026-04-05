@@ -39,3 +39,76 @@ model:
   learning_rate: 0.001
   batch_size: 4
   epochs: 50
+
+# config.yaml - Section Objectif 2
+classical_detection:
+  lung_segmentation:
+    hu_threshold: -400
+    min_area: 1000
+  thresholding:
+    method: percentile
+    percentile: 95
+    min_hu: 50
+    max_hu: 400
+  morphology:
+    min_volume: 20
+    max_volume: 5000
+
+# config.yaml - Section Objectif 4
+radiomics:
+  # Paramètres du sélecteur
+  selector:
+    variance_threshold: 0.01
+    correlation_threshold: 0.95
+    top_k_features: 20
+    selection_method: "random_forest"
+  
+  # Chemins
+  features_path: "data/processed/radiomics_features.csv"
+  selector_path: "models/radiomics_selector.pkl"
+  figures_path: "figures/radiomics"
+  
+  # Labels (à adapter selon ton dataset)
+  label_column: "has_embolism"  # ou "label", "target", etc.
+  
+  # Split pour entraînement du sélecteur (optionnel)
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+
+
+  # config.yaml - Section Objectif 5
+classical_models:
+  # Paramètres des modèles
+  models:
+    random_forest:
+      n_estimators: 200
+      max_depth: 10
+      class_weight: "balanced"
+    svm:
+      C: 1.0
+      kernel: "rbf"
+      class_weight: "balanced"
+    logistic_regression:
+      C: 1.0
+      class_weight: "balanced"
+    xgboost:
+      n_estimators: 200
+      max_depth: 10
+      learning_rate: 0.1
+      use_label_encoder: false
+      eval_metric: "logloss"
+  
+  # Chemins
+  features_path: "data/processed/radiomics_features_selected.csv"  # Features sélectionnées
+  results_path: "results/classical_models_results.csv"
+  figures_path: "figures/classical_models"
+  
+  # Labels (doit correspondre au label_column de radiomics)
+  label_column: "has_embolism"
+  
+  # Split pour entraînement/test
+  train_ratio: 0.7
+  test_ratio: 0.3
+
+  ""

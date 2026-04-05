@@ -15,6 +15,7 @@ HU_WINDOWS = {
     'bone': (250, 1500),       # Fenêtre osseuse
     'full': (-1024, 3071)      # Plage complète scanner 12 bits
 }
+breakpoint()
 
 def apply_windowing(volume: np.ndarray, 
                    window_min: float, 

@@ -285,7 +285,7 @@ def load_patient_data(patient_id: str, inventory: Dict):
     else:
         # Mode RAW : charger DICOM + .mat
         volume, v_meta = load_dicom_volume(vol_path)
-        mask, m_meta = load_mask_mat(mask_path)
+        mask, m_meta = load_mask(mask_path)
     
     # Sécurité : recalage si une coupe manque dans l'un des deux fichiers
     if volume is not None and mask is not None:
