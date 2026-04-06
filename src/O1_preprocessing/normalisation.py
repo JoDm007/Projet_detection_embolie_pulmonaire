@@ -15,12 +15,11 @@ HU_WINDOWS = {
     'bone': (250, 1500),       # Fenêtre osseuse
     'full': (-1024, 3071)      # Plage complète scanner 12 bits
 }
-breakpoint()
 
 def apply_windowing(volume: np.ndarray, 
                    window_min: float, 
                    window_max: float,
-                   normalize: bool = True) -> np.ndarray:
+                   normalize: bool = False) -> np.ndarray:
     """
     Objectif 1 : Fenêtrage Hounsfield et normalisation
     

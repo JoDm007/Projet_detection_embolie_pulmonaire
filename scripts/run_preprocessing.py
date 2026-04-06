@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 CONFIG = {
     'hu_window': HU_WINDOWS['lung'],  # (-600, 600) pour embolies
     'target_spacing': (1.0, 1.0, 1.0),  # Isotropique 1mm³
-    'normalize': True,  # Normaliser vers [0, 1]
+    'normalize': False,  # Garder les valeurs HU (pas de normalisation [0,1])
     'data_dir': 'data',
     'output_dir': 'data/processed',
     'splits_dir': 'data/splits'
@@ -93,8 +93,8 @@ def preprocess_patient(patient_id: str,
         
         metadata['original_shape'] = list(volume.shape)
         metadata['original_spacing'] = {
-            'xy': vol_meta['spacing'],
-            'z': vol_meta['slice_spacing']
+            'xy': [float(x) for x in vol_meta['spacing']] if vol_meta['spacing'] else [1.0, 1.0],
+            'z': float(vol_meta['slice_spacing']) if 'slice_spacing' in vol_meta else 1.0
         }
         
         logger.info(f"   📊 Volume brut: {volume.shape}, HU: [{volume.min():.0f}, {volume.max():.0f}]")
@@ -111,11 +111,17 @@ def preprocess_patient(patient_id: str,
         logger.info(f"   🪟 Fenêtrage appliqué: [{window_min}, {window_max}] HU")
         
         # 3. Resampling isotrope
-        current_spacing = (
-            vol_meta['slice_spacing'],
-            vol_meta['spacing'][0],
-            vol_meta['spacing'][1]
-        )
+        # Gestion robuste des métadonnées de spacing
+        if 'slice_spacing' in vol_meta and 'spacing' in vol_meta:
+            current_spacing = (
+                vol_meta['slice_spacing'],
+                vol_meta['spacing'][0],
+                vol_meta['spacing'][1]
+            )
+        else:
+            # Valeurs par défaut si métadonnées manquantes
+            logger.warning("   ⚠️ Métadonnées de spacing manquantes, utilisation de (1.0, 1.0, 1.0)")
+            current_spacing = (1.0, 1.0, 1.0)
         
         volume_resampled, mask_resampled, new_spacing = standardize_spacing(
             volume_windowed,
@@ -183,7 +189,7 @@ def run_preprocessing_pipeline(config: Dict) -> Dict:
     logger.info("="*60)
     
     # 1. Récupérer l'inventaire des patients
-    inventory = get_available_patients(config['data_dir'])
+    inventory = get_available_patients(config['data_dir'], force_raw=True)
     
     if not inventory['with_both']:
         logger.error("❌ Aucun patient avec volume + masque trouvé !")
