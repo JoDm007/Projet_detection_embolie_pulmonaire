@@ -167,10 +167,11 @@ def load_npy_mask(mask_path: str) -> Tuple[Optional[np.ndarray], Optional[Dict]]
         return None, None
 
 
-def get_available_patients(base_dir: str = "data") -> Dict[str, Any]:
+def get_available_patients(base_dir: str = "data", force_raw: bool = False) -> Dict[str, Any]:
     """
     Scanne les dossiers et crée un index des chemins pour chaque patient.
     Bascule automatiquement de 'processed' vers 'raw' si nécessaire.
+    Si force_raw est True, force l'utilisation des données brutes même si processed existe.
     """
     base_path = Path(base_dir)
     
@@ -181,7 +182,7 @@ def get_available_patients(base_dir: str = "data") -> Dict[str, Any]:
     # ✅ CORRECTION CRITIQUE : On vérifie qu'il y a VRAIMENT des patients dans processed
     use_processed = False
     
-    if processed_check.exists():
+    if not force_raw and processed_check.exists():
         # Cherche spécifiquement des dossiers PAT* dans processed
         processed_patients = list(processed_check.glob("PAT*"))
         if len(processed_patients) > 0:
