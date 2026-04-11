@@ -1,54 +1,29 @@
-Voici la feuille de route complète de ton projet. Elle lie chaque **Objectif** aux **fichiers `src**` et aux **Notebooks** correspondants 
+1. CONTEXTE 
+L’embolie pulmonaire (EP) est une urgence médicale causée par l’obstruction partielle ou 
+totale d’une artère pulmonaire par un thrombus. Elle représente l’une des principales 
+causes de mortalité cardiovasculaire. L’examen de référence pour son diagnostic est 
+l’angioscanner thoracique (CTPA). 
+L’analyse des images est généralement réalisée manuellement par un radiologue, ce qui 
+peut être long, dépendant de l’expertise et sujet à variabilité. L’automatisation de la 
+détection par des techniques de traitement d’image, de vision par ordinateur et de deep 
+learning constitue donc un enjeu majeur. 
+Dans ce projet, vous utiliserez le jeu de données FUMPE (Ferdowsi University of Mashhad's 
+Pulmonary Embolism dataset) afin de développer et comparer différentes approches de 
+détection.
 
----
+2. PROBLÈME 
+La détection automatique des emboles pulmonaires sur images CTPA est complexe en 
+raison : - du faible contraste local, - de la petite taille de certaines lésions, - du bruit d’acquisition, - de la variabilité anatomique, - de la complexité de l’arbre artériel pulmonaire. 
+Les méthodes classiques et les méthodes basées sur le deep learning présentent chacune 
+des avantages et des limites qu’il convient d’évaluer.
 
-## 🗺️ Cartographie du Projet par Objectif
+3. PROBLÉMATIQUE 
+Comment concevoir, comparer et valider un système automatique robuste de détection 
+d’embolie pulmonaire sur images CTPA, en utilisant à la fois des méthodes classiques de 
+traitement d’image et des approches de deep learning, et en évaluant rigoureusement leurs 
+performances sur le jeu de données FUMPE ?
 
-### Objectif 1 : Prétraitement & Organisation
-
-* **Fichiers `src/O1_preprocessing/**` : `loader.py` (Chargement), `normalisation.py` (Fenêtrage), `resampling.py` (Iso-résolution), `split_data.py` (Train/Val/Test).
-* **Notebook** : `01_exploration.ipynb` (Visualisation brute) et `02_preprocessing_demo.ipynb` (Validation du pipeline).
-* **Résultat** : Tes données passent de `data/raw/` (.dcm/.mat) à `data/processed/` (.npy).
-
-### Objectif 2 : Détection Classique (Vaisseaux & PE)
-
-* **Fichiers `src/O2_classical_detection/**` : `thresholding.py` (Segmentation des poumons), `morphology.py` (Nettoyage), `connected_components.py` (Isoler les caillots potentiels).
-* **Notebook** : `03_classical_detection_demo.ipynb`.
-* **Résultat** : Une première carte de détection sans IA, basée sur les formes et les densités.
-
-### Objectif 3 : Extraction de Caractéristiques (Radiomique)
-
-* **Fichiers `src/O3_radiomics/**` : `feature_extractor.py` (Utilisation de `PyRadiomics`), `feature_selector.py`.
-* **Notebook** : `04_radiomics_demo.ipynb`.
-* **Résultat** : Un fichier CSV contenant des descripteurs (texture, forme) pour chaque zone suspecte.
-
-### Objectif 4 : Machine Learning Traditionnel
-
-* **Fichiers `src/O4_classical_classifier/**` : `train_classifier.py` (Random Forest ou SVM), `predict_classifier.py`.
-* **Notebook** : `05_classical_classifier_demo.ipynb`.
-* **Résultat** : Un modèle capable de dire "Embolie ou non" basé sur les caractéristiques de l'Objectif 3.
-
-### Objectif 5 : Deep Learning (Segmentation/Détection)
-
-* **Fichiers `src/O5_deep_learning/**` : `unet_3d.py` (Architecture), `data_generator.py` (Lecture des .npy), `train.py`.
-* **Notebook** : `06_deep_learning_demo.ipynb`.
-* **Résultat** : Ton modèle de pointe (U-Net ou CNN) entraîné.
-
-### Objectif 6 : Évaluation des Performances
-
-* **Fichiers `src/O6_evaluation/**` : `metrics.py` (Dice, Sensibilité, Spécificité), `visualization.py` (Courbes ROC).
-* **Notebook** : `07_evaluation_demo.ipynb`.
-* **Résultat** : Les chiffres finaux de ton projet (ex: "Mon IA détecte 92% des embolies").
-
-### Objectif 7 : Optimisation
-
-* **Fichiers `src/O7_optimization/**` : `data_augmentation.py` (Rotation/Flip), `hyperparameter_tuning.py`.
-* **Résultat** : Une version améliorée et plus robuste de ton modèle Deep Learning.
-
-### Objectif 8 : Analyse Clinique
-
-* **Fichiers `src/O8_clinical_validation/**` : `size_analysis.py`.
-* **Notebook** : `08_clinical_analysis.ipynb`.
-* **Résultat** : Rapport sur les limites du modèle (ex: "L'IA a du mal sur les embolies distales de moins de 2mm").
-
----
+4. OBJECTIF GÉNÉRAL 
+Développer, comparer et valider un système automatique de détection d’embolie 
+pulmonaire sur scanner thoracique en utilisant des techniques de traitement d’image, de 
+vision par ordinateur et de deep learning appliquées au jeu de données FUMPE. 
