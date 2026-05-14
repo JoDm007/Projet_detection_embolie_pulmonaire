@@ -47,8 +47,19 @@ def adaptive_threshold(volume: np.ndarray,
     # Option : lissage préalable
     if sigma > 0:
         from scipy.ndimage import gaussian_filter
-        volume_smooth = gaussian_filter(volume, sigma=sigma)
-        logger.info(f"   Lissage gaussien (sigma={sigma})")
+        # Optimisation : n'appliquer le filtre que sur la bounding box des poumons
+        coords = np.where(lung_mask)
+        if len(coords[0]) > 0:
+            z0, z1 = coords[0].min(), coords[0].max() + 1
+            y0, y1 = coords[1].min(), coords[1].max() + 1
+            x0, x1 = coords[2].min(), coords[2].max() + 1
+            
+            volume_smooth = volume.copy()
+            roi = volume[z0:z1, y0:y1, x0:x1]
+            volume_smooth[z0:z1, y0:y1, x0:x1] = gaussian_filter(roi, sigma=sigma)
+            logger.info(f"   Lissage gaussien (sigma={sigma}) appliqué sur ROI de taille {roi.shape}")
+        else:
+            volume_smooth = volume
     else:
         volume_smooth = volume
     

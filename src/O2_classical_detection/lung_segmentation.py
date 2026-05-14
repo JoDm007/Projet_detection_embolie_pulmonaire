@@ -144,8 +144,21 @@ def _advanced_morphology_3d(mask: np.ndarray) -> np.ndarray:
     # 2. Fermeture 3D
     mask = morphology.binary_closing(mask, structure)
     
-    # 3. Remplissage des trous 3D
-    mask = ndimage.binary_fill_holes(mask)
+    # 3. Inclusion des hiles (vaisseaux principaux) via Convex Hull 2D
+    from skimage.morphology import convex_hull_image
+    from skimage import measure
+    
+    hull_mask = np.zeros_like(mask)
+    for z in range(mask.shape[0]):
+        slice_mask = mask[z]
+        if slice_mask.any():
+            labeled = measure.label(slice_mask)
+            for region in measure.regionprops(labeled):
+                if region.area > 500:  # Ignorer le petit bruit
+                    region_mask = (labeled == region.label)
+                    hull_mask[z] = hull_mask[z] | convex_hull_image(region_mask)
+    
+    mask = hull_mask
     
     # 4. Enlever les petites composantes
     mask = morphology.remove_small_objects(mask, min_size=10000)
