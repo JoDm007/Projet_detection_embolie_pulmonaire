@@ -1,6 +1,104 @@
-Voici la feuille de route complète de ton projet. Elle lie chaque **Objectif** aux **fichiers `src**` et aux **Notebooks** correspondants 
+Voici la feuille de route complète de ton projet. Elle lie chaque **Objectif** aux **fichiers `src**` et aux **Notebooks** correspondants
 
 ---
+
+```
+encore une fois regarde bien la structure adaptée et globale du projet; pour plus de coherence:
+bien commancons alors:
+FUMPE_Detection/
+├── config.yaml                    # Paramètres globaux
+├── setup.py                       # Installation du package
+├── README.md
+├── requirements.txt
+│
+├── data/
+│   ├── raw/
+│   │   ├── CT_scans_01/
+│   │   ├── CT_scans_02/
+│   │   ├── CT_scans_03/
+│   │   └── GroundTruth/
+│   ├── processed/                 # Sera rempli par preprocessing
+│   ├── splits/                     # Sera créé par le script de split
+│   └── metadata/
+│
+├── src/
+│   ├── O1_preprocessing/
+│   │   ├── __init__.py
+│   │   ├── loader.py              # Chargement des données
+│   │   ├── normalisation.py        # Fenêtrage Hounsfield
+│   │   ├── resampling.py          # Redimensionnement
+│   │   └── split_data.py          # Train/Val/Test split
+│   │
+│   ├── O2_classical_detection/
+│   │   ├── __init__.py
+│   │   ├── thresholding.py        # Seuillage adaptatif
+│   │   ├── morphology.py          # Morphologie mathématique
+│   │   └── connected_components.py # Composantes connexes 3D
+│   │
+│   ├── O3_radiomics/
+│   │   ├── __init__.py
+│   │   ├── feature_extractor.py   # Extraction des caractéristiques
+│   │   └── feature_selector.py    # Sélection des features pertinentes
+│   │
+│   ├── O4_classical_classifier/
+│   │   ├── __init__.py
+│   │   ├── train_classifier.py    # SVM, Random Forest, etc.
+│   │   └── predict_classifier.py
+│   │
+│   ├── O5_deep_learning/
+│   │   ├── __init__.py
+│   │   ├── cnn_2d.py              # CNN 2D slice-based
+│   │   ├── cnn_3d.py              # CNN 3D
+│   │   ├── unet_3d.py             # U-Net 3D pour segmentation
+│   │   ├── data_generator.py      # Générateur pour entraînement
+│   │   └── train.py
+│   │
+│   ├── O6_evaluation/
+│   │   ├── __init__.py
+│   │   ├── metrics.py             # Dice, Sensibilité, Spécificité, etc.
+│   │   ├── statistical_tests.py   # Test de McNemar, etc.
+│   │   └── visualization.py       # Courbes ROC, exemples
+│   │
+│   ├── O7_optimization/
+│   │   ├── __init__.py
+│   │   ├── data_augmentation.py   # Augmentation 3D
+│   │   ├── class_balancing.py     # Équilibrage des classes
+│   │   └── hyperparameter_tuning.py # Grid search, etc.
+│   │
+│   ├── O8_clinical_validation/
+│   │   ├── __init__.py
+│   │   ├── size_analysis.py       # Performance selon taille des lésions
+│   │   └── limitations.py
+│   │
+│   └── utils/
+│       ├── __init__.py
+│       ├── visualization.py       # Visualisation 3D/2D
+│       ├── io.py                   # Chargement/sauvegarde
+│       └── logger.py
+│
+├── notebooks/
+│   ├── 01_exploration.ipynb
+│   ├── 02_preprocessing_demo.ipynb
+│   ├── 03_classical_detection_demo.ipynb
+│   ├── 04_radiomics_demo.ipynb
+│   ├── 05_classical_classifier_demo.ipynb
+│   ├── 06_deep_learning_demo.ipynb
+│   ├── 07_evaluation_demo.ipynb
+│   └── 08_clinical_analysis.ipynb
+│
+├── scripts/
+│   ├── run_preprocessing.py
+│   ├── run_classical_pipeline.py
+│   ├── train_deep_model.py
+│   └── evaluate_all.py
+│
+├── models/                         # Modèles sauvegardés
+├── results/                        # Métriques, figures
+├── logs/                           # Logs d'entraînement
+├── tests/                          # Tests unitaires
+├── docs/                           # Documentation
+└── figures/                        # Figures pour le rapport
+```
 
 ## 🗺️ Cartographie du Projet par Objectif
 
@@ -53,7 +151,8 @@ Voici la feuille de route complète de ton projet. Elle lie chaque **Objectif** 
 
 ---
 
-Pour faire  le **push** sur Git 
+Pour faire  le **push** sur Git
+
 ### 1. Le cas classique (le plus courant)
 
 déjà lié le dépôt et que tu es sur la branche `main` (ou `master`) :
@@ -87,4 +186,3 @@ N'oublie pas que pour que le push fonctionne, tes fichiers doivent être indexé
 1. **`git add .`** (Prépare tous les fichiers)
 2. **`git commit -m "Ton message ici"`** (Enregistre les modifications)
 3. **`git push origin main`** (Envoie sur le serveur)
-

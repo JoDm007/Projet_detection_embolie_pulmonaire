@@ -6,11 +6,15 @@ import numpy as np
 import pandas as pd
 import logging
 from scipy.ndimage import center_of_mass
-from .feature_extractor import EmbolismFeatureExtractor
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
+
+try:
+    from .feature_extractor import EmbolismFeatureExtractor
+except (ImportError, ValueError):
+    from feature_extractor import EmbolismFeatureExtractor
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)

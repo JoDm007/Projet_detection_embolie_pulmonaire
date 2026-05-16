@@ -56,6 +56,8 @@ class ClassicalClassifierPredictor:
     
     def preprocess(self, X: pd.DataFrame) -> pd.DataFrame:
         """Prétraite les données (standardisation)"""
+        # Remplacer les valeurs infinies par NaN, puis NaN par 0
+        X = X.replace([np.inf, -np.inf], np.nan).fillna(0)
         if self.scaler is None:
             logger.warning("⚠️ Scaler non disponible, utilisation des données brutes")
             return X

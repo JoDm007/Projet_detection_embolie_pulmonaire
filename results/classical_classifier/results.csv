@@ -1,0 +1,4 @@
+,accuracy,precision,recall,f1,auc_roc,auc_pr,std_auc
+random_forest,0.9630,0.9492,0.7250,0.8002,0.9705,0.9169,0.0361
+xgboost,0.9631,0.9278,0.7500,0.8144,0.9701,0.9002,0.0365
+logistic_regression,0.9489,0.7722,0.8000,0.7757,0.9557,0.8632,0.0431

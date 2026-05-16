@@ -103,7 +103,7 @@ class ClassicalClassifierTrainer:
                 n_estimators=200, 
                 max_depth=10, 
                 learning_rate=0.1, 
-                use_label_encoder=False, 
+                #use_label_encoder=False, 
                 eval_metric='logloss', 
                 random_state=self.random_state
             )
@@ -118,8 +118,14 @@ class ClassicalClassifierTrainer:
     def evaluate_model(self, model: Any, X_test: pd.DataFrame, y_test: pd.Series) -> Dict[str, float]:
         """Évalue un modèle sur le jeu de test"""
         y_pred = model.predict(X_test)
-        y_proba = model.predict_proba(X_test)[:, 1]
-        
+        proba_matrix = model.predict_proba(X_test)
+        if proba_matrix.shape[1] == 1:
+            # Le modèle n'a vu qu'une classe — on retourne des probas constantes
+            known_class = model.classes_[0]
+            y_proba = np.ones(len(X_test)) if known_class == 1 else np.zeros(len(X_test))
+        else:
+            y_proba = proba_matrix[:, 1]
+
         metrics = {
             'accuracy': accuracy_score(y_test, y_pred),
             'precision': precision_score(y_test, y_pred),
@@ -132,9 +138,7 @@ class ClassicalClassifierTrainer:
         return metrics
     
     def train_with_cross_validation(self, model_name: str, X: pd.DataFrame, y: pd.Series) -> Dict[str, Any]:
-        """Entraînement avec validation croisée stratifiée"""
         logger.info(f"🔄 Validation croisée pour {model_name}...")
-        
         skf = StratifiedKFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
         fold_metrics = []
         
@@ -142,18 +146,21 @@ class ClassicalClassifierTrainer:
             X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
             y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
             
-            model = self.train_model(model_name, X_train, y_train)
-            metrics = self.evaluate_model(model, X_val, y_val)
+            # ✅ Fit du scaler UNIQUEMENT sur le train fold
+            scaler_fold = StandardScaler()
+            X_train_scaled = scaler_fold.fit_transform(X_train)
+            X_val_scaled = scaler_fold.transform(X_val)
+            
+            model = self.train_model(model_name, pd.DataFrame(X_train_scaled, columns=X.columns), y_train)
+            metrics = self.evaluate_model(model, pd.DataFrame(X_val_scaled, columns=X.columns), y_val)
             fold_metrics.append(metrics)
             
             logger.info(f"  Fold {fold+1}: AUC={metrics['auc_roc']:.3f}, F1={metrics['f1']:.3f}")
         
-        # Moyenne des métriques
         avg_metrics = {k: np.mean([m[k] for m in fold_metrics]) for k in fold_metrics[0]}
         avg_metrics['std_auc'] = np.std([m['auc_roc'] for m in fold_metrics])
         
         logger.info(f"✅ {model_name} - Moyenne: AUC={avg_metrics['auc_roc']:.3f}, F1={avg_metrics['f1']:.3f}")
-        
         return avg_metrics
     
     def train_final_model(self, model_name: str, X: pd.DataFrame, y: pd.Series) -> Any:
@@ -164,25 +171,25 @@ class ClassicalClassifierTrainer:
         self.models[model_name] = model
         
         return model
-    
+
     def train_all(self, models: list = None) -> Dict[str, Any]:
-        """Entraîne tous les modèles"""
         if models is None:
             models = ['random_forest', 'svm', 'logistic_regression', 'xgboost']
         
         X, y = self.load_data()
-        X = self.preprocess(X)
-        
+        # ⚠️ Ne PAS scaler ici avant la CV. Le scaler final sera fit sur tout X après la CV.
         results = {}
         
         for model_name in models:
-            # Validation croisée
             cv_metrics = self.train_with_cross_validation(model_name, X, y)
             results[model_name] = cv_metrics
             
-            # Entraînement final
-            self.train_final_model(model_name, X, y)
-        
+        # ✅ Fit final sur TOUT le dataset pour sauvegarde du modèle de prod
+        self.scaler.fit(X)
+        X_final = pd.DataFrame(self.scaler.transform(X), columns=X.columns)
+        for model_name in models:
+            self.train_final_model(model_name, X_final, y)
+            
         self.results = results
         return results
     
@@ -213,7 +220,7 @@ class ClassicalClassifierTrainer:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         df_results = pd.DataFrame.from_dict(self.results, orient='index')
-        df_results.to_csv(output_path)
+        df_results.to_csv(output_path, float_format='%.4f')
         logger.info(f"💾 Résultats sauvegardés : {output_path}")
 
 
@@ -250,4 +257,3 @@ if __name__ == "__main__":
     print(f"AUC: {results[best_model_name]['auc_roc']:.4f}")
     print(f"F1-score: {results[best_model_name]['f1']:.4f}")
     print("="*50)
-    

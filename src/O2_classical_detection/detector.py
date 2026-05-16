@@ -91,9 +91,14 @@ class ClassicalDetector:
             voxel_volume = spacing[0] * spacing[1] * spacing[2]
             candidates_df['volume_mm3'] = candidates_df['volume_voxels'] * voxel_volume
         
+        # 6. Masque labellisé (un label unique par candidat, pour build_ml_dataset)
+        from scipy.ndimage import label as nd_label
+        labeled_mask, _ = nd_label(candidates)
+
         result = {
             'lung_mask': lung_mask,
             'candidates_mask': candidates,
+            'candidates_labeled': labeled_mask,  # masque avec un label par candidat
             'candidates_df': candidates_df,
             'n_candidates': len(candidates_df),
             'total_candidate_voxels': candidates.sum()
