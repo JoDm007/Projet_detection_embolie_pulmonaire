@@ -1,10 +1,8 @@
-Voici la feuille de route complète de ton projet. Elle lie chaque **Objectif** aux **fichiers `src**` et aux **Notebooks** correspondants
+Voici la feuille de route complète du projet. Elle lie chaque **Objectif** aux **fichiers** `src` et aux **Notebooks** correspondants
 
 ---
 
 ```
-encore une fois regarde bien la structure adaptée et globale du projet; pour plus de coherence:
-bien commancons alors:
 FUMPE_Detection/
 ├── config.yaml                    # Paramètres globaux
 ├── setup.py                       # Installation du package

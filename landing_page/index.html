@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUMPE — IA 3D Détection & Segmentation Embolie Pulmonaire | Hackathon AI4Youth</title>
+    <meta name="description" content="Solution d'Intelligence Artificielle 3D pour la détection, segmentation volumétrique et quantification du volume de l'embolie pulmonaire aux urgences.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Background Glow Effects -->
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+
+    <!-- Header / Navigation -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <div class="logo-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+                <span class="logo-text">FUMPE <span class="badge-tag">IA 3D</span></span>
+            </div>
+            <nav class="nav-links">
+                <a href="#problem">Problème Clinique</a>
+                <a href="#solution">Solution 3D</a>
+                <a href="#demo">Démo Interactive</a>
+                <a href="#architecture">IA Hybride</a>
+                <a href="#pipeline">Pipeline O1-O8</a>
+                <a href="#metrics">Résultats</a>
+            </nav>
+            <div class="nav-actions">
+                <span class="hackathon-badge"><i class="fa-solid fa-trophy"></i> AI4Youth 2026</span>
+                <a href="#pitch" class="btn btn-primary"><i class="fa-solid fa-circle-play"></i> Pitch 2 min</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span class="pulse-dot"></span> Candidature Hackathon AI4Youth — Santé Publique
+                </div>
+                <h1 class="hero-title">
+                    Détection & Segmentation <span class="text-gradient-red">3D Volumétrique</span> de l'Embolie Pulmonaire
+                </h1>
+                <p class="hero-subtitle">
+                    Une IA de pointe assiste les radiologues aux urgences en délimitant voxel par voxel les caillots sanguins et en calculant la <strong>charge thrombotique (volume en mm³)</strong>.
+                </p>
+                <div class="hero-stats-mini">
+                    <div class="mini-stat">
+                        <span class="mini-value">180-500</span>
+                        <span class="mini-label">Coupes / Scanner CT</span>
+                    </div>
+                    <div class="mini-divider"></div>
+                    <div class="mini-stat">
+                        <span class="mini-value">&ge; 70%</span>
+                        <span class="mini-label">Sensibilité Cible</span>
+                    </div>
+                    <div class="mini-divider"></div>
+                    <div class="mini-stat">
+                        <span class="mini-value">1x1x1 mm³</span>
+                        <span class="mini-label">Résolution Isotropique</span>
+                    </div>
+                </div>
+                <div class="hero-btns">
+                    <a href="#demo" class="btn btn-glow"><i class="fa-solid fa-microscope"></i> Essayer le Simulateur 3D</a>
+                    <a href="#architecture" class="btn btn-outline"><i class="fa-solid fa-code-branch"></i> Explorer l'Architecture</a>
+                </div>
+            </div>
+
+            <!-- Hero Interactive Preview Card -->
+            <div class="hero-preview-card glass-panel">
+                <div class="card-header">
+                    <div class="card-title"><i class="fa-solid fa-cube"></i> Reconstruction Volumétrique Pulmonaire</div>
+                    <span class="status-pill status-active"><i class="fa-solid fa-check"></i> FUMPE v1.0</span>
+                </div>
+                <div class="ct-simulator-hero">
+                    <canvas id="heroCanvas" width="400" height="300"></canvas>
+                    <div class="scan-line"></div>
+                    <div class="overlay-info">
+                        <div class="info-row"><span>Patient ID:</span> <strong>FUMPE-CT-024</strong></div>
+                        <div class="info-row"><span>Plage HU:</span> <strong>-100 à +50 HU</strong></div>
+                        <div class="info-row"><span>Thrombus Burden:</span> <strong class="text-red">1 420 mm³</strong></div>
+                        <div class="info-row"><span>Diagnostic IA:</span> <strong class="text-warning">Embolie Centrale (VP)</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section id="problem" class="section">
+        <div class="container">
+            <div class="section-header text-center">
+                <span class="section-tag">LE DÉFI SANTE PUBLIQUE</span>
+                <h2>L'Urgence Vitale du Diagnostic de l'Embolie Pulmonaire</h2>
+                <p>3ᵉ cause de mortalité cardiovasculaire dans le monde. Une prise en charge rapide sauve des vues.</p>
+            </div>
+
+            <div class="grid grid-3">
+                <div class="card glass-card">
+                    <div class="card-icon icon-red"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                    <h3>Volume de Données Massif</h3>
+                    <p>Un seul angioscanner produit <strong>180 à 500 coupes 2D</strong>. Analyser chaque millimètre d'artère pulmonaire prend un temps précieux en urgence.</p>
+                </div>
+
+                <div class="card glass-card">
+                    <div class="card-icon icon-amber"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <h3>Subtilité & Fatigue Médicale</h3>
+                    <p>Les caillots secondaires ou périphériques sont sombres et faciles à rater en garde de nuit sous la fatigue de la charge de travail.</p>
+                </div>
+
+                <div class="card glass-card">
+                    <div class="card-icon icon-blue"><i class="fa-solid fa-user-doctor"></i></div>
+                    <h3>Pénurie de Spécialistes</h3>
+                    <p>Dans de nombreuses régions et structures d'Afrique, le manque critique de radiologues crée des goulots d'étranglement diagnostiques anxieux.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution Section -->
+    <section id="solution" class="section bg-alt">
+        <div class="container">
+            <div class="section-header text-center">
+                <span class="section-tag">NOTRE INNOVATION</span>
+                <h2>Détection vs Segmentation Volumétrique 3D</h2>
+                <p>Pourquoi dire "Oui/Non" ne suffit pas en pratique clinique réelle.</p>
+            </div>
+
+            <div class="comparison-container glass-panel">
+                <div class="comparison-grid">
+                    <div class="comp-col comp-old">
+                        <div class="comp-header">
+                            <i class="fa-solid fa-circle-xmark icon-bad"></i>
+                            <h3>Détection Binaire Classique</h3>
+                            <span class="comp-badge">Insuffisant en clinique</span>
+                        </div>
+                        <ul class="comp-list">
+                            <li><i class="fa-solid fa-xmark"></i> Répond seulement "Embolie présente ou non"</li>
+                            <li><i class="fa-solid fa-xmark"></i> Aucune information sur le volume précis du caillot</li>
+                            <li><i class="fa-solid fa-xmark"></i> Impossible d'évaluer le risque cardiaque droit</li>
+                            <li><i class="fa-solid fa-xmark"></i> Effet "Boîte noire" non rassurant pour le médecin</li>
+                        </ul>
+                    </div>
+
+                    <div class="comp-vs">VS</div>
+
+                    <div class="comp-col comp-new">
+                        <div class="comp-header">
+                            <i class="fa-solid fa-circle-check icon-good"></i>
+                            <h3>FUMPE Segmentation 3D (Notre Solution)</h3>
+                            <span class="comp-badge-accent">Standard Médical Avancé</span>
+                        </div>
+                        <ul class="comp-list">
+                            <li><i class="fa-solid fa-check"></i> <strong>Délimitation voxel par voxel</strong> en 3D</li>
+                            <li><i class="fa-solid fa-check"></i> <strong>Calcul de la Charge Thrombotique</strong> (volume en mm³)</li>
+                            <li><i class="fa-solid fa-check"></i> <strong>Superposition 3D couleur</strong> directement sur le scanner</li>
+                            <li><i class="fa-solid fa-check"></i> <strong>Suivi thérapeutique précis</strong> (évolution de la taille)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Demo Section -->
+    <section id="demo" class="section">
+        <div class="container">
+            <div class="section-header text-center">
+                <span class="section-tag">SIMULATEUR DE SCANNER CT</span>
+                <h2>Démo Interactive d'Analyse Scanner 3D</h2>
+                <p>Déplacez le curseur de coupes scanner pour observer l'analyse en temps réel et la superposition du masque IA.</p>
+            </div>
+
+            <div class="simulator-wrapper glass-panel">
+                <div class="sim-sidebar">
+                    <h3>Paramètres d'Analyse</h3>
+                    <div class="sim-control-group">
+                        <label for="sliceRange">Coupe Thoracique : <span id="sliceNumVal">142</span> / 300</label>
+                        <input type="range" id="sliceRange" min="1" max="300" value="142" class="slider">
+                    </div>
+
+                    <div class="sim-control-group">
+                        <label>Affichage Superposition :</label>
+                        <div class="toggle-group">
+                            <button class="btn-toggle active" id="btnModeOverlay"><i class="fa-solid fa-layer-group"></i> IA Overlay 3D</button>
+                            <button class="btn-toggle" id="btnModeRaw"><i class="fa-solid fa-eye"></i> Scanner Brut HU</button>
+                        </div>
+                    </div>
+
+                    <div class="sim-control-group">
+                        <label>Approche IA active :</label>
+                        <select id="modelSelect" class="sim-select">
+                            <option value="unet3d">Deep Learning — U-Net 3D (Dice Loss)</option>
+                            <option value="radiomics">ML Classique — Candidates + XGBoost</option>
+                        </select>
+                    </div>
+
+                    <div class="sim-metrics-box">
+                        <div class="sim-metric">
+                            <span class="sm-label">Densité moyenne :</span>
+                            <span class="sm-val" id="huVal">-15 HU (Caillot Thrombotique)</span>
+                        </div>
+                        <div class="sim-metric">
+                            <span class="sm-label">Volume détecté :</span>
+                            <span class="sm-val text-red" id="volVal">1 240 mm³</span>
+                        </div>
+                        <div class="sim-metric">
+                            <span class="sm-label">Indice de Confiance IA :</span>
+                            <span class="sm-val text-cyan" id="confVal">96.4%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sim-display">
+                    <div class="view-header">
+                        <span>Vue Axiale Thoracique CT — Unités Hounsfield (HU)</span>
+                        <span class="zoom-badge"><i class="fa-solid fa-magnifying-glass-plus"></i> Fenêtre Pulmonaire [ -100, +50 HU ]</span>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="simCanvas" width="512" height="512"></canvas>
+                        <div id="simTooltip" class="sim-tooltip"></div>
+                    </div>
+                    <div class="sim-footer">
+                        <span><i class="fa-solid fa-info-circle"></i> Glissez sur l'image scanner pour lire la densité HU instantanée.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture" class="section bg-alt">
+        <div class="container">
+            <div class="section-header text-center">
+                <span class="section-tag">ARCHITECTURE IA HYBRIDE</span>
+                <h2>Deux Approches Complémentaires en Compétition</h2>
+                <p>Combinaison du Machine Learning explicable et de la puissance du Deep Learning 3D.</p>
+            </div>
+
+            <div class="tab-wrapper">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="branch-a"><i class="fa-solid fa-diagram-project"></i> Branche A : ML Classique & Radiomique</button>
+                    <button class="tab-btn" data-tab="branch-b"><i class="fa-solid fa-brain"></i> Branche B : Deep Learning 3D U-Net</button>
+                </div>
+
+                <div class="tab-content active" id="branch-a">
+                    <div class="grid grid-2">
+                        <div class="tab-text">
+                            <h3>Machine Learning par Génération de Candidats & Radiomique</h3>
+                            <p>L'approche classique découpe le problème en étapes compréhensibles et totalement auditables par le médecin radiologue :</p>
+                            <ul class="check-list">
+                                <li><strong>1. Seuillage & Filtrage Morphologique 3D :</strong> Isolation des zones d'atténuation sombre anormales dans les vaisseaux.</li>
+                                <li><strong>2. Extraction Radiomique (20 Descripteurs) :</strong> Calcul des propriétés de forme (sphéricité, volume), d'intensité et de texture GLCM.</li>
+                                <li><strong>3. Classification Supervisée :</strong> Entraînement de modèles XGBoost, Random Forest et SVM sur 352 candidats extraits.</li>
+                            </ul>
+                            <div class="tech-stack-pills">
+                                <span>SimpleITK</span><span>scikit-learn</span><span>XGBoost</span><span>Radiomics</span>
+                            </div>
+                        </div>
+                        <div class="tab-visual glass-panel">
+                            <div class="radiomic-feature-box">
+                                <h4>Profil Radiomique Extrait (Exemple)</h4>
+                                <div class="feature-bar"><span>GLCM Entropy :</span> <div class="bar"><div class="fill" style="width: 82%"></div></div></div>
+                                <div class="feature-bar"><span>Sphéricité Voxel :</span> <div class="bar"><div class="fill" style="width: 65%"></div></div></div>
+                                <div class="feature-bar"><span>Moyenne HU :</span> <div class="bar"><div class="fill" style="width: 45%"></div></div></div>
+                                <div class="feature-bar"><span>Ratio Surface/Volume :</span> <div class="bar"><div class="fill" style="width: 78%"></div></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="branch-b">
+                    <div class="grid grid-2">
+                        <div class="tab-text">
+                            <h3>Deep Learning Volumétrique 3D (U-Net 3D)</h3>
+                            <p>Un réseau de neurones convolutifs 3D analyse directement le volume scanner global pour capturer des motifs vasculaires complexes :</p>
+                            <ul class="check-list">
+                                <li><strong>Architecture U-Net 3D / Attention U-Net :** Structure Encoder-Decoder avec liaisons résiduelles (skip-connections).</li>
+                                <li><strong>Perte Spécialisée Dice Loss :** Optimisation directe du chevauchement de volume pour faire face au fort déséquilibre de classe.</li>
+                                <li><strong>Traitement Isotropique :** Entrée 3D rééchantillonnée à $1 \times 1 \times 1 \text{ mm}^3$ sans perte d'information spatiale.</li>
+                            </ul>
+                            <div class="tech-stack-pills">
+                                <span>TensorFlow 3D</span><span>Keras</span><span>Dice Loss</span><span>CUDA</span>
+                            </div>
+                        </div>
+                        <div class="tab-visual glass-panel text-center">
+                            <div class="unet-diagram">
+                                <div class="unet-node">Encoder 3D (Conv3D + MaxPool)</div>
+                                <div class="unet-arrow"><i class="fa-solid fa-arrow-down"></i> Skip Connections <i class="fa-solid fa-arrow-up"></i></div>
+                                <div class="unet-node node-bottleneck">Bottleneck FUMPE</div>
+                                <div class="unet-arrow"><i class="fa-solid fa-arrow-up"></i></div>
+                                <div class="unet-node">Decoder 3D (UpSampling + Conv3D) ➔ Masque Volumétrique</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pipeline Steps Section (O1-O8) -->
+    <section id="pipeline" class="section">
+        <div class="container">
+            <div class="section-header text-center">
+                <span class="section-tag">FEUILLE DE ROUTE TECHNIQUE</span>
+                <h2>Les 8 Étapes du Projet FUMPE (O1 à O8)</h2>
+                <p>De la conversion des scanners DICOM jusqu'à la validation clinique.</p>
+            </div>
+
+            <div class="timeline-grid">
+                <div class="timeline-card step-done">
+                    <div class="step-num">O1</div>
+                    <div class="step-content">
+                        <h3>Prétraitement & Harmonisation</h3>
+                        <p>Conversion DICOM ➔ HU, rééchantillonnage isotropique 1mm³, split Train/Val/Test (70/15/15).</p>
+                        <span class="badge-done"><i class="fa-solid fa-check"></i> Terminé (35/35)</span>
+                    </div>
+                </div>
+
+                <div class="timeline-card step-done">
+                    <div class="step-num">O2</div>
+                    <div class="step-content">
+                        <h3>Détection de Candidats</h3>
+                        <p>Segmentation du parenchyme pulmonaire, seuillage adaptatif et composantes connexes 3D.</p>
+                        <span class="badge-done"><i class="fa-solid fa-check"></i> Terminé</span>
+                    </div>
+                </div>
+
+                <div class="timeline-card step-done">
+                    <div class="step-num">O3</div>
+                    <div class="step-content">
+                        <h3>Extraction Radiomique</h3>
+                        <p>Calcul de 20 caractéristiques de forme et texture sur 352 candidats (40 vrais / 312 faux).</p>
+                        <span class="badge-done"><i class="fa-solid fa-check"></i> Terminé</span>
+                    </div>
+                </div>
+
+                <div class="timeline-card step-progress">
+                    <div class="step-num">O4</div>
+                    <div class="step-content">
+                        <h3>Classification ML</h3>
+                        <p>Entraînement de Random Forest, SVM & XGBoost avec rééquilibrage de classe (SMOTE).</p>
+                        <span class="badge-progress"><i class="fa-solid fa-spinner fa-spin"></i> En Cours</span>
+                    </div>
+                </div>
+
+                <div class="timeline-card step-progress">
+                    <div class="step-num">O5</div>
+                    <div class="step-content">
+                        <h3>Segmentation U-Net 3D</h3>
+                        <p>Entraînement du réseau convolutif 3D bout-en-bout avec fonction de perte Dice.</p>
+                        <span class="badge-progress"><i class="fa-solid fa-spinner fa-spin"></i> En Cours</span>
+                    </div>
+                </div>
+
+                <div class="timeline-card step-todo">
+                    <div class="step-num">O6</div>
+                    <div class="step-content">
+                        <h3>Évaluation Comparative</h3>
+                        <p>Mesure de performance croisée via tests de McNemar, sensibilité et courbes ROC.</p>
+                        <span class="badge-todo"><i class="fa-solid fa-clock"></i> Prochaine étape</span>
+                    </div>
+                </div>
+
+                <div class="timeline-card step-todo">
+                    <div class="step-num">O7</div>
+                    <div class="step-content">
+                        <h3>Optimisation Avancée</h3>
+                        <p>Réglage fin des hyperparamètres et accélération du temps de calcul par coupe.</p>
+                        <span class="badge-todo"><i class="fa-solid fa-clock"></i> À venir</span>
+                    </div>
+                </div>
+
+                <div class="timeline-card step-todo">
+                    <div class="step-num">O8</div>
+                    <div class="step-content">
+                        <h3>Validation Clinique</h3>
+                        <p>Analyse des performances par taille de caillot et rapport de sécurité médicale.</p>
+                        <span class="badge-todo"><i class="fa-solid fa-clock"></i> À venir</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Metrics & Benchmark Section -->
+    <section id="metrics" class="section bg-alt">
+        <div class="container">
+            <div class="section-header text-center">
+                <span class="section-tag">OBJECTIFS & CRITÈRES DE RÉUSSITE</span>
+                <h2>Métriques de Validation Médicale & Technique</h2>
+                <p>Évaluation rigoureuse sur le jeu de données FUMPE de 35 patients.</p>
+            </div>
+
+            <div class="grid grid-4">
+                <div class="metric-card glass-card">
+                    <div class="metric-icon"><i class="fa-solid fa-shield-heart"></i></div>
+                    <div class="metric-val">&ge; 70%</div>
+                    <div class="metric-name">Sensibilité (Rappel)</div>
+                    <p class="metric-desc">Priorité médicale absolue : rater le minimum de vraies embolies pulmonaires.</p>
+                </div>
+
+                <div class="metric-card glass-card">
+                    <div class="metric-icon"><i class="fa-solid fa-draw-polygon"></i></div>
+                    <div class="metric-val">&ge; 0.40</div>
+                    <div class="metric-name">Dice Score (3D)</div>
+                    <p class="metric-desc">Chevauchement exact du tracé 3D par rapport au tracé de référence des radiologues.</p>
+                </div>
+
+                <div class="metric-card glass-card">
+                    <div class="metric-icon"><i class="fa-solid fa-chart-line"></i></div>
+                    <div class="metric-val">&ge; 0.75</div>
+                    <div class="metric-name">AUC-ROC</div>
+                    <p class="metric-desc">Indice de discrimination globale entre les caillots et les artefacts anatomiques.</p>
+                </div>
+
+                <div class="metric-card glass-card">
+                    <div class="metric-icon"><i class="fa-solid fa-database"></i></div>
+                    <div class="metric-val">35 CT</div>
+                    <div class="metric-name">Dataset FUMPE</div>
+                    <p class="metric-desc">Scanners 3D annotés manuellement par des experts radiologues diplômés.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pitch Video Section -->
+    <section id="pitch" class="section">
+        <div class="container">
+            <div class="pitch-box glass-panel">
+                <div class="pitch-content">
+                    <span class="section-tag">SOUMISSION HACKATHON AI4YOUTH</span>
+                    <h2>Pitch Vidéo (2 Minutes Max)</h2>
+                    <p>Découvrez notre présentation synthétique du concept pour le jury du concours AI4Youth 2026.</p>
+                    
+                    <div class="pitch-transcript">
+                        <div class="transcript-step"><span class="ts-time">00:00 - 00:20</span> <strong>L'Accroche :</strong> L'urgence de l'embolie pulmonaire et le défi du temps de lecture scanner.</div>
+                        <div class="transcript-step"><span class="ts-time">00:20 - 00:50</span> <strong>La Solution FUMPE :</strong> Détection + Segmentation 3D voxel par voxel & Thrombus Burden en mm³.</div>
+                        <div class="transcript-step"><span class="ts-time">00:50 - 01:20</span> <strong>L'IA Hybride :</strong> Radiomique explicable (XGBoost) vs Deep Learning (U-Net 3D, Dice Loss).</div>
+                        <div class="transcript-step"><span class="ts-time">01:20 - 02:00</span> <strong>Impact Santé Publique :</strong> Gain de temps aux urgences, soutien aux radiologues en zone à faibles ressources.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-brand">
+                <div class="logo">
+                    <div class="logo-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+                    <span class="logo-text">FUMPE IA 3D</span>
+                </div>
+                <p>Projet de Détection et Segmentation Automatique 3D d'Embolie Pulmonaire.</p>
+                <p class="copyright">&copy; 2026 DATE-MASSE Joseph — Candidature AI4Youth (Neuractif)</p>
+            </div>
+            <div class="footer-links">
+                <h4>Ressources du Projet</h4>
+                <ul>
+                    <li><a href="file:///f:/Nouveau%20dossier/Projets/Projet_detection_embolie_pulmonaire/docs/Livrables/Cahier_des_charges.md"><i class="fa-solid fa-file-lines"></i> Cahier des Charges (v2.1)</a></li>
+                    <li><a href="file:///f:/Nouveau%20dossier/Projets/Projet_detection_embolie_pulmonaire/README.md"><i class="fa-solid fa-code"></i> Repository & Architecture</a></li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
