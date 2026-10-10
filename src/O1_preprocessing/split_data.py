@@ -1,11 +1,19 @@
 # split_data.py
 import os
+import sys
 import random
 import json
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import numpy as np
+
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -59,11 +67,6 @@ def create_split(data_dir: str,
     if not 0.99 < train_ratio + val_ratio + test_ratio < 1.01:
         raise ValueError(f"Les ratios doivent sommer à 1: {train_ratio} + {val_ratio} + {test_ratio} = {train_ratio + val_ratio + test_ratio}")
     
-    # 2. Lister tous les dossiers de patients
-    data_path = Path(data_dir)
-    patients = sorted([d.name for d in data_path.iterdir() 
-                      if d.is_dir() and d.name.startswith(patient_prefix)])
-    
     if not patients:
         logger.error(f"Aucun dossier de patient trouvé dans {data_dir}")
         return {}
@@ -108,7 +111,9 @@ def create_split(data_dir: str,
     }
     
     # 6. Sauvegarder le dictionnaire en fichier JSON
-    os.makedirs(os.path.dirname(output_json), exist_ok=True)
+    output_dir = os.path.dirname(output_json)
+    if output_dir:  # Eviter os.makedirs("") qui lève une erreur
+        os.makedirs(output_dir, exist_ok=True)
     with open(output_json, 'w') as f:
         json.dump(split_dict, f, indent=4)
     
@@ -225,8 +230,8 @@ def create_cv_splits(data_dir: str,
     """
     # Lister les patients
     data_path = Path(data_dir)
-    patients = sorted([d.name for d in data_path.iterdir() 
-                      if d.is_dir() and d.name.startswith("PAT")])
+    patients = sorted(list(set([d.name for d in data_path.rglob("PAT*") 
+                      if d.is_dir() and d.name.startswith("PAT")])))
     
     random.seed(seed)
     random.shuffle(patients)

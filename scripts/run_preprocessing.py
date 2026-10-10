@@ -23,6 +23,13 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 # Ajouter le répertoire parent au chemin Python
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 

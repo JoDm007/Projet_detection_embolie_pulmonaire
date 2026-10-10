@@ -16,6 +16,8 @@ __pycache__/
 .vscode/
 .zencoder/
 .zenflow/
+.cursor/
+.codex/
 
 # Système
 .DS_Store

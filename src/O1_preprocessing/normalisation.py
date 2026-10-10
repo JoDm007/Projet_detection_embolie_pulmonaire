@@ -10,8 +10,10 @@ logger = logging.getLogger(__name__)
 
 # Fenêtres Hounsfield standards en scanner thoracique
 HU_WINDOWS = {
-    'lung': (-600, 600),      # Fenêtre pulmonaire (pour embolies)
-    'mediastinal': (40, 400),  # Fenêtre médiastinale
+    'lung': (-600, 400),       # Fenêtre pulmonaire pour embolie (FUMPE) :
+                               #   -600 : coupe l'air profond, garde le parenchyme
+                               #   +400 : coupe l'os, garde vaisseaux contrastés + thrombus
+    'mediastinal': (40, 400),  # Fenêtre médiastinale (vaisseaux, médiastin)
     'bone': (250, 1500),       # Fenêtre osseuse
     'full': (-1024, 3071)      # Plage complète scanner 12 bits
 }

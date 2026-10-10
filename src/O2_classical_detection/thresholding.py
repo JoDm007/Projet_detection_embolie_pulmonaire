@@ -205,19 +205,32 @@ def _multi_scale_threshold(volume: np.ndarray,
     original_shape = volume.shape
     
     for scale in scales:
-        # Redimensionner
-        new_shape = [int(s * scale) for s in original_shape]
-        vol_resized = resize(volume, new_shape, preserve_range=True)
+        if scale == 1.0:
+            # Pas de redimensionnement à l'échelle 1.0
+            lung_values = volume[lung_mask]
+            if len(lung_values) == 0:
+                continue
+            thresh = np.percentile(lung_values, 95)
+            candidates_scale = (volume >= max(thresh, min_hu)) & lung_mask
+        else:
+            # Redimensionner volume ET lung_mask à la même taille
+            new_shape = [max(1, int(s * scale)) for s in original_shape]
+            vol_resized  = resize(volume,    new_shape, preserve_range=True, anti_aliasing=(scale < 1.0))
+            mask_resized = resize(lung_mask.astype(float), new_shape, order=0,
+                                  preserve_range=True, anti_aliasing=False) > 0.5
+
+            lung_values = vol_resized[mask_resized]
+            if len(lung_values) == 0:
+                continue
+            thresh = np.percentile(lung_values, 95)
+            candidates_scale = (vol_resized >= max(thresh, min_hu)) & mask_resized
+
+            # Remettre à l'échelle originale
+            candidates_scale = resize(candidates_scale.astype(float),
+                                      original_shape, order=0,
+                                      preserve_range=True, anti_aliasing=False) > 0.5
         
-        # Seuillage simple à cette échelle
-        thresh = np.percentile(vol_resized[lung_mask], 95)
-        candidates_scale = vol_resized >= max(thresh, min_hu)
-        
-        # Remettre à l'échelle originale
-        candidates_scale_resized = resize(candidates_scale.astype(float), 
-                                         original_shape) > 0.5
-        
-        candidates = np.logical_or(candidates, candidates_scale_resized)
+        candidates = np.logical_or(candidates, candidates_scale)
     
     return candidates
 

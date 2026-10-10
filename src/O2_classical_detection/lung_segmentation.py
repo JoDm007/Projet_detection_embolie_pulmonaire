@@ -94,8 +94,10 @@ def segment_lungs(volume: np.ndarray,
         kept = 0
         for r in regions:
             if r.area >= min_area and kept < 2:
-                # Vérifier que ce n'est pas trop circulaire (sinon c'est probablement un artefact)
-                if r.eccentricity < 0.8:  # Pas trop circulaire
+                # Exclure les formes quasi-ponctuelles (eccentricity ≈ 0 = cercle parfait = artefact)
+                # Les poumons sont elliptiques : eccentricity typique 0.7–0.97
+                # CORRECTION : la condition était inversée (< 0.8 excluait les poumons elliptiques)
+                if r.eccentricity > 0.1:  # garder tout sauf les points quasi-circulaires
                     lung_mask[z] = lung_mask[z] | (labeled == r.label)
                     kept += 1
         
@@ -169,18 +171,19 @@ def _advanced_morphology_3d(mask: np.ndarray) -> np.ndarray:
     return mask
 
 def _separate_lungs(mask: np.ndarray) -> np.ndarray:
-    labeled, n_regions = ndimage.label(mask)
     """
     Sépare les poumons gauche et droit si nécessaire
     (utile pour certaines analyses)
     """
+    # Calcul ici, APRÈS la docstring
+    labeled, n_regions = ndimage.label(mask)
+
     if n_regions <= 1:
         return mask
-    
+
     # Si plus de 2 régions, garder les 2 plus grandes
     if n_regions > 2:
-        sizes = ndimage.sum(mask.astype(int), labeled, range(1, n_regions+1))
-        # ✅ Vérifier qu'il y a assez de régions
+        sizes = ndimage.sum(mask.astype(int), labeled, range(1, n_regions + 1))
         if len(sizes) >= 2:
             largest_labels = np.argsort(sizes)[-2:] + 1
             result = np.isin(labeled, largest_labels)
@@ -188,7 +191,7 @@ def _separate_lungs(mask: np.ndarray) -> np.ndarray:
             result = mask  # Fallback
     else:
         result = mask
-    
+
     return result
 
 def extract_lung_roi(volume: np.ndarray, 

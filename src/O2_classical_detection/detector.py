@@ -67,6 +67,10 @@ class ClassicalDetector:
         )
         
         # 2. Seuillage adaptatif dans les poumons
+        # NOTE : adaptive_threshold() appelle déjà _clean_candidates() en interne
+        # (opening + closing + remove_small_objects). On NE reappelle PAS clean_candidates()
+        # du module morphology pour éviter un double nettoyage qui détruirait les petites
+        # embolies (10–50 voxels). On applique seulement le filtre volumétrique final.
         candidates = adaptive_threshold(
             volume,
             lung_mask,
@@ -75,13 +79,19 @@ class ClassicalDetector:
             min_hu=self.min_hu,
             max_hu=self.max_hu
         )
-        
-        # 3. Nettoyage morphologique
-        candidates = clean_candidates(
-            candidates,
-            min_volume=self.min_candidate_volume,
-            max_volume=self.max_candidate_volume
-        )
+        logger.info(f"   Après seuillage : {candidates.sum()} voxels candidats")
+
+        # 3. Filtre volumétrique uniquement (sans double ouverture morphologique)
+        from scipy.ndimage import label as _label
+        labeled_tmp, n_tmp = _label(candidates)
+        mask_filtered = np.zeros_like(candidates, dtype=bool)
+        for rid in range(1, n_tmp + 1):
+            region = (labeled_tmp == rid)
+            vol = int(region.sum())
+            if self.min_candidate_volume <= vol <= self.max_candidate_volume:
+                mask_filtered[region] = True
+        candidates = mask_filtered
+        logger.info(f"   Après filtre volume [{self.min_candidate_volume}–{self.max_candidate_volume}] : {candidates.sum()} voxels")
         
         # 4. Extraction des features
         candidates_df = extract_candidates_3d(candidates, volume, spacing=spacing)
@@ -106,6 +116,67 @@ class ClassicalDetector:
         
         logger.info(f"✅ Détection terminée : {result['n_candidates']} candidats")
         
+        return result
+
+    def detect_and_save(self,
+                        patient_id: str,
+                        processed_dir: str,
+                        raw_inventory: Dict,
+                        spacing: Optional[Tuple[float, float, float]] = None,
+                        force: bool = False) -> Optional[Dict]:
+        """
+        Exécute la détection sur les données RAW (HU vraies) et sauvegarde
+        candidates.npy dans data/processed/<patient_id>/.
+
+        Cette méthode est le point d'entrée principal pour O2 → O3 :
+        - Charge le volume DICOM depuis raw_inventory (HU brutes)
+        - Applique le pipeline de détection avec les seuils HU physiologiques
+        - Sauvegarde candidates_labeled.npy dans processed/ pour O3
+
+        Args:
+            patient_id:      Identifiant du patient (ex: 'PAT001')
+            processed_dir:   Chemin vers data/processed/
+            raw_inventory:   Inventaire retourné par get_available_patients(force_raw=True)
+            spacing:         Espacement voxel (Z, Y, X) en mm — lu depuis les métadonnées DICOM si None
+            force:           Si False, skip si candidates.npy existe déjà
+
+        Returns:
+            result dict si succès, None si échec ou skip
+        """
+        from src.O1_preprocessing.loader import load_patient_data
+
+        out_path = Path(processed_dir) / patient_id / "candidates.npy"
+
+        if out_path.exists() and not force:
+            logger.info(f"⏭️  {patient_id} : candidates.npy déjà présent (--force pour écraser)")
+            return None
+
+        # Charger depuis RAW pour avoir les HU vraies
+        logger.info(f"📦 Chargement RAW de {patient_id}...")
+        volume, mask, meta = load_patient_data(patient_id, raw_inventory)
+
+        if volume is None:
+            logger.error(f"❌ {patient_id} : volume RAW introuvable")
+            return None
+
+        # Récupérer le spacing depuis les métadonnées DICOM si non fourni
+        if spacing is None and meta:
+            pixel_spacing = meta.get('spacing', [1.0, 1.0])
+            slice_spacing = meta.get('slice_spacing', 1.0)
+            spacing = (float(slice_spacing), float(pixel_spacing[0]), float(pixel_spacing[1]))
+            logger.info(f"   Spacing DICOM : Z={spacing[0]:.2f} Y={spacing[1]:.2f} X={spacing[2]:.2f} mm")
+
+        # Lancer la détection sur les HU vraies
+        result = self.detect(volume, spacing=spacing)
+
+        if result['n_candidates'] == 0:
+            logger.warning(f"⚠️  {patient_id} : aucun candidat détecté")
+
+        # Sauvegarder candidates_labeled dans processed/
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        np.save(out_path, result['candidates_labeled'].astype(np.int32))
+        logger.info(f"💾 {patient_id} : {result['n_candidates']} candidats sauvegardés → {out_path}")
+
         return result
 
 

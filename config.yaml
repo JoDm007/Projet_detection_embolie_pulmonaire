@@ -13,8 +13,9 @@ data:
   logs_path: "logs"
 
 preprocessing:
-  # Fenêtrage Hounsfield (Validé dans Notebook 02)
-  hu_window: [-600, 600]  # Fenêtre pulmonaire
+  # Fenêtrage Hounsfield — Fenêtre pulmonaire pour embolie (FUMPE)
+  # [-600, 400] : coupe l'air profond et l'os, conserve parenchyme + vaisseaux contrastés + thrombus
+  hu_window: [-600, 400]  # Validé : fenêtre standard détection EP avec contraste
   
   # Resampling (Critique pour CNN 3D)
   target_spacing: [1.0, 1.0, 1.0]  # Isotropique 1mm³ (Z, Y, X)

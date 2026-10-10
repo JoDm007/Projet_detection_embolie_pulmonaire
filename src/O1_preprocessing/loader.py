@@ -1,3 +1,4 @@
+import sys
 import pydicom
 import numpy as np
 import glob
@@ -5,6 +6,13 @@ from scipy.io import loadmat
 from pathlib import Path
 from typing import Tuple, Optional, Dict, Any, List
 import logging
+
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 # 1. Configuration du logging pour un suivi professionnel
 logging.basicConfig(
@@ -45,6 +53,9 @@ def load_dicom_volume(directory: str) -> Tuple[Optional[np.ndarray], Optional[Di
             slope = getattr(s, 'RescaleSlope', 1.0)
             intercept = getattr(s, 'RescaleIntercept', -1024)
             volume[i] = volume[i] * slope + intercept
+        
+        logger.info(f"ℹ️ DICOM metadata: RescaleSlope={slope}, RescaleIntercept={intercept}")
+        logger.info(f"   Plage HU après conversion: [{volume.min():.1f}, {volume.max():.1f}]")
 
         # Extraction des métadonnées pour le futur ré-échantillonnage (Resampling)
         metadata = {
@@ -112,10 +123,13 @@ def load_mask(mat_path: str) -> Tuple[Optional[np.ndarray], Optional[Dict]]:
             mask = (mask > 0).astype(np.uint8)
         
         # RÉALIGNEMENT ROBUSTE : MATLAB → (Z, Y, X)
+        # MATLAB stocke en (Y, X, Z), donc si la 3e dim est plus petite que les deux premières
+        # (typique des coupes Z << 512), on transpose.
         if mask.ndim == 3:
-            if mask.shape[-1] < mask.shape[0]:  # Si Z est en dernière position
+            if mask.shape[2] < mask.shape[0] and mask.shape[2] < mask.shape[1]:
+                original_shape = mask.shape
                 mask = mask.transpose(2, 1, 0)
-                logger.info(f"Transpose appliqué: → {mask.shape}")
+                logger.info(f"Transpose appliqué: {original_shape} → {mask.shape}")
             
         logger.info(f"✅ Masque chargé : {mask.shape}")
         return mask, {}
@@ -202,29 +216,21 @@ def get_available_patients(base_dir: str = "data", force_raw: bool = False) -> D
     # 2. Indexation des Scans
     vol_paths = {}
     
-    # Structure RAW : CT_scans_*/PAT*
-    for scan_folder in source_dir.glob("CT_scans_*"):
-        for p_dir in scan_folder.iterdir():
-            if p_dir.is_dir() and p_dir.name.startswith("PAT"):
-                raw_id = p_dir.name
-                if raw_id.startswith("PAT"):
-                    num_part = raw_id[3:]
-                    normalized_id = f"PAT{int(num_part):03d}"
-                else:
-                    normalized_id = raw_id
-                vol_paths[normalized_id] = p_dir
-    
-    # Structure PROCESSED : PAT* directement
     if use_processed:
-        for p_dir in source_dir.glob("PAT*"):
+        for p_dir in source_dir.rglob("PAT*"):
             if p_dir.is_dir():
                 raw_id = p_dir.name
-                if raw_id.startswith("PAT"):
-                    num_part = raw_id[3:]
-                    normalized_id = f"PAT{int(num_part):03d}"
-                else:
-                    normalized_id = raw_id
-                vol_paths[normalized_id] = p_dir
+                if raw_id.startswith("PAT") and raw_id[3:].isdigit():
+                    normalized_id = f"PAT{int(raw_id[3:]):03d}"
+                    vol_paths[normalized_id] = p_dir
+    else:
+        # Structure RAW : Chercher tous les dossiers PAT* récursivement dans source_dir
+        for p_dir in source_dir.rglob("PAT*"):
+            if p_dir.is_dir():
+                raw_id = p_dir.name
+                if raw_id.startswith("PAT") and raw_id[3:].isdigit():
+                    normalized_id = f"PAT{int(raw_id[3:]):03d}"
+                    vol_paths[normalized_id] = p_dir
 
     logger.info(f"📁 Volumes trouvés : {len(vol_paths)} patients")
 
@@ -238,23 +244,19 @@ def get_available_patients(base_dir: str = "data", force_raw: bool = False) -> D
             if mask_npy.exists():
                 mask_paths[p_id] = mask_npy
     else:
-        # Dans raw, chercher dans GroundTruth
+        # Dans raw, chercher récursivement dans GroundTruth (ou source_dir) les fichiers .mat
         gt_path = source_dir / "GroundTruth"
-        if not gt_path.exists():
-            gt_path = source_dir / "GroundTruth" / "GroundTruth"
+        search_dir = gt_path if gt_path.exists() else source_dir
         
-        if gt_path.exists():
-            for m_file in gt_path.glob("*.mat"):
-                name = m_file.stem
-                if name.startswith("PAT"):
-                    num_part = name[3:]
-                    key = f"PAT{int(num_part):03d}"
-                else:
-                    key = f"PAT{int(name):03d}"
+        for m_file in search_dir.rglob("*.mat"):
+            name = m_file.stem
+            if name.startswith("PAT") and name[3:].isdigit():
+                key = f"PAT{int(name[3:]):03d}"
                 mask_paths[key] = m_file
-            logger.info(f"📁 Masques trouvés dans {gt_path}: {len(mask_paths)} fichiers")
-        else:
-            logger.warning(f"⚠️ Dossier GroundTruth introuvable : {gt_path}")
+            elif name.isdigit():
+                key = f"PAT{int(name):03d}"
+                mask_paths[key] = m_file
+        logger.info(f"📁 Masques trouvés dans {search_dir}: {len(mask_paths)} fichiers")
 
     # 4. Intersection
     common_ids = sorted(set(vol_paths.keys()) & set(mask_paths.keys()))

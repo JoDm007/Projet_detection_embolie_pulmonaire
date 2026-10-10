@@ -158,19 +158,25 @@ def compute_compactness(region_mask: np.ndarray) -> float:
 
 def passes_additional_filters(region_mask: np.ndarray) -> bool:
     """
-    Filtres supplémentaires optionnels
+    Filtres supplémentaires : rejette les régions touchant les bords XY et Z.
+    Marge réduite à 1 voxel : les poumons et vaisseaux périphériques peuvent
+    légitimement être proches des bords du FOV scanner (bord Y ou X à 511/0).
     """
-    # Exemple: rejeter les régions trop proches du bord
-    # (souvent des artefacts)
-    margin = 3
+    margin = 1  # CORRECTION : 3 était trop restrictif, rejetait les vaisseaux périphériques
     shape = region_mask.shape
-    if (region_mask[:margin].any() or 
-        region_mask[-margin:].any() or
-        region_mask[:, :margin].any() or 
-        region_mask[:, -margin:].any()):
-        # Trop proche du bord, potentiel artefact
+
+    # Bord Z (coupes sup/inf)
+    if region_mask[:margin].any() or region_mask[-margin:].any():
         return False
-    
+
+    # Bord Y
+    if region_mask[:, :margin].any() or region_mask[:, -margin:].any():
+        return False
+
+    # Bord X
+    if region_mask[:, :, :margin].any() or region_mask[:, :, -margin:].any():
+        return False
+
     return True
 
 def fill_holes_3d(mask: np.ndarray, max_hole_size: int = 100) -> np.ndarray:
