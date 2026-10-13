@@ -24,3 +24,7 @@ __pycache__/
 docs/
 scratch/
 .kiro/
+.gitignore
+
+#Doc
+notebooks/_backup_before_doc/

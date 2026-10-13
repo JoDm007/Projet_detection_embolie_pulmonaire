@@ -114,11 +114,13 @@ class EmbolismFeatureExtractor:
                 
                 slice_digitized = (slice_digitized + 1) * mask_2d
                 
+                # GLCM: use normed=False and normalize manually to avoid double normalization
                 glcm = graycomatrix(slice_digitized, distances=[1], angles=[0, np.pi/4, np.pi/2, 3*np.pi/4],
-                                    levels=256, symmetric=True, normed=True)
+                                    levels=256, symmetric=True, normed=False)
                 
                 glcm = glcm[1:, 1:, :, :] 
                 
+                # Normalize manually: divide by sum to get probabilities
                 sum_glcm = np.sum(glcm, axis=(0, 1))
                 sum_glcm[sum_glcm == 0] = 1
                 glcm_norm = glcm / sum_glcm
