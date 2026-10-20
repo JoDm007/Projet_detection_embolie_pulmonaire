@@ -122,13 +122,17 @@ def load_mask(mat_path: str) -> Tuple[Optional[np.ndarray], Optional[Dict]]:
         if mask.max() > 1:
             mask = (mask > 0).astype(np.uint8)
         
-        # RÉALIGNEMENT ROBUSTE : MATLAB → (Z, Y, X)
-        # MATLAB stocke en (Y, X, Z), donc si la 3e dim est plus petite que les deux premières
-        # (typique des coupes Z << 512), on transpose.
+        # RÉALIGNEMENT ROBUSTE : MATLAB (Y, X, Z) → NumPy/DICOM (Z, Y, X)
+        # Le volume DICOM est empilé en (Z, Y, X). MATLAB stocke le masque en (Y, X, Z),
+        # donc si la 3e dim est la plus petite (typique des coupes Z << 512), on transpose.
+        # ⚠️ CORRECTION : il faut transpose(2, 0, 1) [(Y,X,Z)→(Z,Y,X)].
+        #    L'ancien transpose(2, 1, 0) donnait (Z, X, Y) → Y et X inversés, ce qui
+        #    désalignait le masque du volume (GT tombant sur de l'air, −800 HU).
+        #    Validé empiriquement : (2,0,1) → ~3% d'air sous le GT contre >20% sinon.
         if mask.ndim == 3:
             if mask.shape[2] < mask.shape[0] and mask.shape[2] < mask.shape[1]:
                 original_shape = mask.shape
-                mask = mask.transpose(2, 1, 0)
+                mask = mask.transpose(2, 0, 1)
                 logger.info(f"Transpose appliqué: {original_shape} → {mask.shape}")
             
         logger.info(f"✅ Masque chargé : {mask.shape}")
@@ -271,6 +275,35 @@ def get_available_patients(base_dir: str = "data", force_raw: bool = False) -> D
     }
 
 
+def align_mask_z(volume: np.ndarray,
+                 mask: np.ndarray,
+                 air_value: float = -400.0,
+                 margin: float = 0.05) -> np.ndarray:
+    """
+    Corrige une éventuelle inversion de l'axe Z du masque par rapport au volume.
+
+    Certains masques FUMPE (.mat) ont le sens des coupes inversé par rapport à l'ordre
+    spatial du DICOM. On compare la fraction de voxels GT tombant dans l'air (valeur <
+    air_value) entre le masque et son miroir en Z, et on garde l'orientation la plus
+    plausible (un caillot ne peut pas être dans l'air). Ne fait rien si le masque est
+    vide, si les formes diffèrent, ou si le gain est négligeable.
+
+    air_value : seuil « air » dans l'unité du volume (HU : -400 ; volume normalisé [0,1] : ~0.2).
+    """
+    if volume is None or mask is None or volume.shape != mask.shape:
+        return mask
+    gt = mask > 0
+    if gt.sum() == 0:
+        return mask
+    air_id = float((volume[gt] < air_value).mean())
+    flipped = mask[::-1]
+    air_fl = float((volume[flipped > 0] < air_value).mean())
+    if air_fl + margin < air_id:
+        logger.info(f"🔄 Orientation Z corrigée (flip) : air sous GT {air_id:.1%} → {air_fl:.1%}")
+        return np.ascontiguousarray(flipped)
+    return mask
+
+
 def load_patient_data(patient_id: str, inventory: Dict):
     """
     Charge le volume et le masque en utilisant l'inventaire.
@@ -289,7 +322,10 @@ def load_patient_data(patient_id: str, inventory: Dict):
         # Mode RAW : charger DICOM + .mat
         volume, v_meta = load_dicom_volume(vol_path)
         mask, m_meta = load_mask(mask_path)
-    
+        # Auto-correction de l'orientation Z (certains .mat FUMPE ont le sens des coupes inversé).
+        # Le volume RAW est en HU, donc on détecte l'air à -400 HU.
+        mask = align_mask_z(volume, mask, air_value=-400.0)
+
     # Sécurité : recalage si une coupe manque dans l'un des deux fichiers
     if volume is not None and mask is not None:
         if volume.shape[0] != mask.shape[0]:
