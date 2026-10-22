@@ -65,7 +65,7 @@ def main():
             if len(candidates_df) == 0:
                 logger.info(f"[{i+1}/{len(patient_dirs)}] {patient_id} : 0 candidat détecté.")
                 # Sauvegarder quand même un masque vide pour la cohérence
-                np.save(p_dir / 'candidates.npy', np.zeros_like(volume, dtype=np.uint8))
+                np.savez_compressed(p_dir / 'candidates.npz', labels=np.zeros_like(volume, dtype=np.int16))
                 continue
                 
             # 2. Labellisation (VP/FP)
@@ -77,8 +77,8 @@ def main():
             logger.info(f"[{i+1}/{len(patient_dirs)}] ✅ {patient_id}: {len(candidates_df)} candidats ({n_vp} VP, {n_fp} FP)")
             
             # 3. SAUVEGARDE CRITIQUE DES MASQUES (pour O3 build_ml_dataset)
-            np.save(p_dir / 'candidates.npy', result['candidates_labeled'].astype(np.uint16))
-            np.save(p_dir / 'lung_mask.npy', result['lung_mask'].astype(np.uint8))
+            np.savez_compressed(p_dir / 'candidates.npz', labels=result['candidates_labeled'].astype(np.int16))
+            np.savez_compressed(p_dir / 'lung_mask.npz', lung=result['lung_mask'].astype(bool))
             
             all_candidates.append(candidates_df)
             

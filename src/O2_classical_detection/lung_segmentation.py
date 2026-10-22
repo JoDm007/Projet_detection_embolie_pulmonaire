@@ -158,7 +158,12 @@ def _advanced_morphology_3d(mask: np.ndarray) -> np.ndarray:
             for region in measure.regionprops(labeled):
                 if region.area > 500:  # Ignorer le petit bruit
                     region_mask = (labeled == region.label)
-                    hull_mask[z] = hull_mask[z] | convex_hull_image(region_mask)
+                    # convex_hull_image lève QhullError sur régions dégénérées (quasi-colinéaires).
+                    # Dans ce cas on garde la région telle quelle (pas d'enveloppe convexe).
+                    try:
+                        hull_mask[z] = hull_mask[z] | convex_hull_image(region_mask)
+                    except Exception:
+                        hull_mask[z] = hull_mask[z] | region_mask
     
     mask = hull_mask
     

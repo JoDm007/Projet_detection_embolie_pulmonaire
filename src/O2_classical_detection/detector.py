@@ -49,8 +49,16 @@ class ClassicalDetector:
         self.max_hu = self.config.get('max_hu', 400)
         
         # Paramètres de filtrage morphologique
-        self.min_candidate_volume = self.config.get('min_candidate_volume', 10)
-        self.max_candidate_volume = self.config.get('max_candidate_volume', 10000)
+        self.min_candidate_volume = self.config.get('min_candidate_volume', 50)
+        # max_candidate_volume = None → AUCUN plafond. Le cap à 5000 jetait les grosses
+        # composantes brillantes posées sur le GT (embolies centrales jusqu'à ~190k voxels)
+        # → 58 %/0 % de recouvrement. Cf. plan Phase 1 (baseline mesuré).
+        self.max_candidate_volume = self.config.get('max_candidate_volume', None)
+
+        # Mode de détection : 'bright' (approche B recommandée — régions brillantes du lumen
+        # vasculaire, alignées sur le GT FUMPE) ou 'percentile' (ancien seuillage, conservé).
+        self.detection_mode = self.config.get('detection_mode', 'bright')
+        self.vessel_min_hu = self.config.get('vessel_min_hu', 100)
         
     def detect(self, volume: np.ndarray, 
                spacing: Optional[Tuple[float, float, float]] = None) -> Dict:
@@ -66,32 +74,42 @@ class ClassicalDetector:
             min_area=self.lung_min_area
         )
         
-        # 2. Seuillage adaptatif dans les poumons
-        # NOTE : adaptive_threshold() appelle déjà _clean_candidates() en interne
-        # (opening + closing + remove_small_objects). On NE reappelle PAS clean_candidates()
-        # du module morphology pour éviter un double nettoyage qui détruirait les petites
-        # embolies (10–50 voxels). On applique seulement le filtre volumétrique final.
-        candidates = adaptive_threshold(
-            volume,
-            lung_mask,
-            method=self.threshold_method,
-            percentile=self.threshold_percentile,
-            min_hu=self.min_hu,
-            max_hu=self.max_hu
-        )
-        logger.info(f"   Après seuillage : {candidates.sum()} voxels candidats")
+        # 2. Génération des candidats bruts selon le mode
+        if self.detection_mode == 'bright':
+            # Approche B : régions brillantes (lumen vasculaire opacifié) dans les poumons.
+            # Alignée sur le GT FUMPE, qui annote le lumen et non le caillot sombre.
+            from skimage.morphology import remove_small_objects
+            candidates = (volume >= self.vessel_min_hu) & (volume <= self.max_hu) & lung_mask
+            candidates = remove_small_objects(candidates, min_size=20)
+            logger.info(f"   Seuillage brillant (≥{self.vessel_min_hu} HU) : {candidates.sum()} voxels candidats")
+        else:
+            # Ancien mode (seuillage percentile) — conservé pour comparaison.
+            # adaptive_threshold() fait déjà opening+closing+remove_small_objects en interne.
+            candidates = adaptive_threshold(
+                volume,
+                lung_mask,
+                method=self.threshold_method,
+                percentile=self.threshold_percentile,
+                min_hu=self.min_hu,
+                max_hu=self.max_hu
+            )
+            logger.info(f"   Après seuillage percentile : {candidates.sum()} voxels candidats")
 
-        # 3. Filtre volumétrique uniquement (sans double ouverture morphologique)
+        # 3. Filtre volumétrique : minimum obligatoire, maximum optionnel (None = pas de plafond)
         from scipy.ndimage import label as _label
         labeled_tmp, n_tmp = _label(candidates)
+        counts = np.bincount(labeled_tmp.ravel())
         mask_filtered = np.zeros_like(candidates, dtype=bool)
         for rid in range(1, n_tmp + 1):
-            region = (labeled_tmp == rid)
-            vol = int(region.sum())
-            if self.min_candidate_volume <= vol <= self.max_candidate_volume:
-                mask_filtered[region] = True
+            vol = int(counts[rid])
+            if vol < self.min_candidate_volume:
+                continue
+            if self.max_candidate_volume is not None and vol > self.max_candidate_volume:
+                continue
+            mask_filtered[labeled_tmp == rid] = True
         candidates = mask_filtered
-        logger.info(f"   Après filtre volume [{self.min_candidate_volume}–{self.max_candidate_volume}] : {candidates.sum()} voxels")
+        cap = self.max_candidate_volume if self.max_candidate_volume is not None else "∞"
+        logger.info(f"   Après filtre volume [{self.min_candidate_volume}–{cap}] : {candidates.sum()} voxels")
         
         # 4. Extraction des features
         candidates_df = extract_candidates_3d(candidates, volume, spacing=spacing)
@@ -145,10 +163,10 @@ class ClassicalDetector:
         """
         from src.O1_preprocessing.loader import load_patient_data
 
-        out_path = Path(processed_dir) / patient_id / "candidates.npy"
+        out_path = Path(processed_dir) / patient_id / "candidates.npz"
 
         if out_path.exists() and not force:
-            logger.info(f"⏭️  {patient_id} : candidates.npy déjà présent (--force pour écraser)")
+            logger.info(f"⏭️  {patient_id} : candidates.npz déjà présent (--force pour écraser)")
             return None
 
         # Charger depuis RAW pour avoir les HU vraies
@@ -174,8 +192,10 @@ class ClassicalDetector:
 
         # Sauvegarder candidates_labeled dans processed/
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        np.save(out_path, result['candidates_labeled'].astype(np.int32))
-        logger.info(f"💾 {patient_id} : {result['n_candidates']} candidats sauvegardés → {out_path}")
+        # Stockage compressé : le masque labellisé est quasi-vide (sparse) → .npz = quelques Mo
+        # au lieu de ~200 Mo pour un .npy dense int32. int16 suffit (< 32767 labels).
+        np.savez_compressed(out_path, labels=result['candidates_labeled'].astype(np.int16))
+        logger.info(f"💾 {patient_id} : {result['n_candidates']} candidats sauvegardés → {out_path} (compressé)")
 
         return result
 

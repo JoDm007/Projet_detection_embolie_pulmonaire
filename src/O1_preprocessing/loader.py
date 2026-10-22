@@ -157,8 +157,19 @@ def load_npy_volume(volume_path: str) -> Tuple[Optional[np.ndarray], Optional[Di
     
     try:
         volume = np.load(volume_path)
+        meta = {'format': 'npy', 'path': str(volume_path)}
+        # Métadonnées (spacing, slice_spacing…) sauvegardées par le preprocessing.
+        # Permet au mode PROCESSED de fournir le spacing réel (sinon absent des .npy).
+        meta_json = volume_path.parent / "meta.json"
+        if meta_json.exists():
+            try:
+                import json
+                with open(meta_json, encoding='utf-8') as f:
+                    meta.update(json.load(f))
+            except Exception as e:
+                logger.warning(f"⚠️ meta.json illisible pour {volume_path.parent.name}: {e}")
         logger.info(f"✅ Volume .npy chargé : {volume.shape}")
-        return volume, {'format': 'npy', 'path': str(volume_path)}
+        return volume, meta
     except Exception as e:
         logger.error(f"❌ Erreur chargement .npy {volume_path}: {e}")
         return None, None

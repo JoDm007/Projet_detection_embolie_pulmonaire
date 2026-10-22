@@ -54,7 +54,7 @@ def main():
         pid = p_dir.name
         vol_path = p_dir / "volume.npy"
         gt_path = p_dir / "mask.npy"          # GT = Vrais Positifs
-        cand_path = p_dir / "candidates.npy"  # Sortie O2 = Masque étiqueté des candidats
+        cand_path = p_dir / "candidates.npz"  # Sortie O2 = Masque étiqueté des candidats (compressé)
         
         if not vol_path.exists() or not gt_path.exists():
             logger.warning(f"⚠️ Fichiers manquants pour {pid}")
@@ -72,7 +72,7 @@ def main():
         
         # 2️⃣ Extraire les FP depuis les candidats O2
         if cand_path.exists():
-            cand_mask = np.load(cand_path)
+            cand_mask = np.load(cand_path)["labels"]
             labels = np.unique(cand_mask[cand_mask > 0])
             for lbl in labels:
                 mask_cand = (cand_mask == lbl).astype(np.uint8)

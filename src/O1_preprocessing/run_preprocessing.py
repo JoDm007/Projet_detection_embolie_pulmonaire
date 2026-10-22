@@ -16,6 +16,7 @@ Usage (depuis la racine du projet) :
 """
 
 import sys
+import json
 import argparse
 import logging
 import shutil
@@ -95,6 +96,23 @@ def preprocess_patient(patient_id: str,
     patient_out.mkdir(parents=True, exist_ok=True)
     np.save(vol_out,  vol_proc)
     np.save(mask_out, mask_proc)
+
+    # Sidecar meta.json : conserve le spacing réel (les .npy ne le stockent pas).
+    # Indispensable pour que le mode PROCESSED affiche la bonne résolution (cf. notebooks).
+    try:
+        spacing = meta.get('spacing', [1.0, 1.0]) if meta else [1.0, 1.0]
+        meta_out = {
+            'spacing': [float(spacing[0]), float(spacing[1])],
+            'slice_thickness': float(meta.get('slice_thickness', 1.0)) if meta else 1.0,
+            'slice_spacing': float(meta.get('slice_spacing', 1.0)) if meta else 1.0,
+            'original_shape': [int(x) for x in vol_proc.shape],
+            'hu_window': [HU_MIN, HU_MAX],
+            'normalized': True,
+        }
+        with open(patient_out / "meta.json", 'w', encoding='utf-8') as f:
+            json.dump(meta_out, f, indent=2)
+    except Exception as e:
+        logger.warning(f"⚠️  {patient_id} : meta.json non sauvegardé ({e})")
 
     voxels_embolie = int(mask_proc.sum())
     pct = 100 * voxels_embolie / mask_proc.size
