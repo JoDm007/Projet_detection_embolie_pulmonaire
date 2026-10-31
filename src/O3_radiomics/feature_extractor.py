@@ -73,13 +73,17 @@ class EmbolismFeatureExtractor:
             voxel_volume = spacing[0] * spacing[1] * spacing[2]
             features['shape_volume_mm3'] = float(main_region.area * voxel_volume)
             
-            features['shape_major_axis_length'] = float(main_region.major_axis_length * spacing[0])
-            features['shape_minor_axis_length'] = float(main_region.minor_axis_length * spacing[0])
-            
-            if main_region.major_axis_length > 0:
-                features['shape_elongation'] = float(main_region.minor_axis_length / main_region.major_axis_length)
-            else:
-                features['shape_elongation'] = 0.0
+            # major/minor_axis_length (axes d'inertie skimage) lèvent "math domain error"
+            # sur les régions dégénérées (plates/linéaires) : sqrt d'une valeur ~négative.
+            # On protège et on retombe sur 0 dans ce cas.
+            try:
+                maj = float(main_region.major_axis_length)
+                mnr = float(main_region.minor_axis_length)
+            except (ValueError, FloatingPointError):
+                maj, mnr = 0.0, 0.0
+            features['shape_major_axis_length'] = maj * spacing[0]
+            features['shape_minor_axis_length'] = mnr * spacing[0]
+            features['shape_elongation'] = (mnr / maj) if maj > 0 else 0.0
 
             try:
                 padded_mask = np.pad(mask_array, pad_width=1, mode='constant', constant_values=0)
