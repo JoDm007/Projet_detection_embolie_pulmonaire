@@ -115,5 +115,3 @@ classical_models:
   # Split pour entraînement/test
   train_ratio: 0.7
   test_ratio: 0.3
-
-  ""
