@@ -28,3 +28,6 @@ scratch/
 
 #Doc
 notebooks/_backup_before_doc/
+
+# Application locale (base, analyses, modèles installés)
+app_data/
