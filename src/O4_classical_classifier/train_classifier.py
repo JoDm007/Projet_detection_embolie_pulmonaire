@@ -74,6 +74,10 @@ class ClassicalClassifierTrainer:
         self.operating_points: Dict[str, pd.DataFrame] = {}
         self.oof: pd.DataFrame = None
         self.scaler: StandardScaler = StandardScaler()
+        # Modèles de chaque fold + fold de test de chaque patient : permettent à l'application
+        # (backend/engines/classical.py) d'analyser un cas FUMPE avec un modèle qui ne l'a pas vu.
+        self.fold_models: Dict[str, List[Dict[str, Any]]] = {}
+        self.fold_assignments: Dict[str, int] = {}
 
         logger.info(f"✅ Classificateur initialisé : {features_path}")
 
@@ -236,6 +240,9 @@ class ClassicalClassifierTrainer:
 
             model = self.train_model(model_name, X_train_scaled, y_train)
             oof_proba[val_idx] = self._positive_proba(model, X_val_scaled)
+            self.fold_models.setdefault(model_name, []).append({'scaler': scaler_fold, 'model': model})
+            for pid in groups.iloc[val_idx].unique():
+                self.fold_assignments[pid] = fold
             m = self._candidate_metrics(y_val, oof_proba[val_idx])
             fold_auc_pr.append(m['auc_pr'])
 
@@ -319,6 +326,17 @@ class ClassicalClassifierTrainer:
         scaler_path = output_path / 'scaler.pkl'
         joblib.dump(self.scaler, scaler_path)
         logger.info(f"💾 Scaler sauvegardé : {scaler_path}")
+
+        # Modèles par fold (même split pour tous les modèles : random_state fixe)
+        if self.fold_models:
+            folds_path = output_path / 'folds'
+            folds_path.mkdir(exist_ok=True)
+            for name, bundles in self.fold_models.items():
+                for k, bundle in enumerate(bundles):
+                    joblib.dump(bundle, folds_path / f'{name}_fold{k}.pkl')
+            pd.DataFrame(sorted(self.fold_assignments.items()), columns=['PatientID', 'fold']) \
+                .to_csv(folds_path / 'fold_assignments.csv', index=False)
+            logger.info(f"💾 Modèles par fold sauvegardés : {folds_path}")
 
     def save_results(self, path: str):
         """Sauvegarde les métriques, les points de fonctionnement et les prédictions OOF"""
