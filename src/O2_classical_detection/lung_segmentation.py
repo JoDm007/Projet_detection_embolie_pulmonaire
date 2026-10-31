@@ -137,42 +137,32 @@ def segment_lungs(volume: np.ndarray,
     return lung_mask
 
 def _advanced_morphology_3d(mask: np.ndarray) -> np.ndarray:
-    """Opérations morphologiques 3D avancées"""
-    
-    # 1. Ouverture 3D pour lisser
-    structure = morphology.ball(3)
-    mask = morphology.binary_opening(mask, structure)
-    
-    # 2. Fermeture 3D
-    mask = morphology.binary_closing(mask, structure)
-    
-    # 3. Inclusion des hiles (vaisseaux principaux) via Convex Hull 2D
-    from skimage.morphology import convex_hull_image
-    from skimage import measure
-    
-    hull_mask = np.zeros_like(mask)
+    """
+    Nettoyage 3D du masque pulmonaire, SANS enveloppe convexe.
+
+    L'ancienne version appliquait `convex_hull_image` par coupe « pour inclure les hiles ».
+    Problème : l'enveloppe convexe des deux poumons comble tout l'espace entre eux → elle
+    avale le médiastin et le cœur (sur-segmentation : >60 % du volume sur certains patients,
+    ex. PAT018). Elle était aussi la source des QhullError.
+
+    On la remplace par un remplissage des trous INTERNES (vaisseaux, bronches) coupe par
+    coupe : cela inclut les structures intra-pulmonaires sans relier les deux poumons
+    (le médiastin, ouvert sur le corps, n'est pas un trou fermé → non rempli).
+    """
+    # 1. Ouverture 3D légère : retire le bruit fin
+    mask = morphology.binary_opening(mask, morphology.ball(2))
+
+    # 2. Fermeture 3D : reconnecte les vaisseaux intra-pulmonaires
+    mask = morphology.binary_closing(mask, morphology.ball(3))
+
+    # 3. Remplir les trous internes, coupe par coupe (n'enjambe pas les poumons)
     for z in range(mask.shape[0]):
-        slice_mask = mask[z]
-        if slice_mask.any():
-            labeled = measure.label(slice_mask)
-            for region in measure.regionprops(labeled):
-                if region.area > 500:  # Ignorer le petit bruit
-                    region_mask = (labeled == region.label)
-                    # convex_hull_image lève QhullError sur régions dégénérées (quasi-colinéaires).
-                    # Dans ce cas on garde la région telle quelle (pas d'enveloppe convexe).
-                    try:
-                        hull_mask[z] = hull_mask[z] | convex_hull_image(region_mask)
-                    except Exception:
-                        hull_mask[z] = hull_mask[z] | region_mask
-    
-    mask = hull_mask
-    
-    # 4. Enlever les petites composantes
+        if mask[z].any():
+            mask[z] = ndimage.binary_fill_holes(mask[z])
+
+    # 4. Ne garder que les grosses composantes (les poumons)
     mask = morphology.remove_small_objects(mask, min_size=10000)
-    
-    # 5. Dilatation légère pour inclure les petites bronchioles
-    mask = morphology.binary_dilation(mask, morphology.ball(1))
-    
+
     return mask
 
 def _separate_lungs(mask: np.ndarray) -> np.ndarray:

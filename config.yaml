@@ -41,19 +41,23 @@ model:
   batch_size: 4
   epochs: 50
 
-# config.yaml - Section Objectif 2
+# config.yaml - Section Objectif 2 (détection classique)
 classical_detection:
   lung_segmentation:
     hu_threshold: -400
     min_area: 1000
+  # Mode 'bright' (approche B) : détecte les régions brillantes du lumen vasculaire,
+  # alignées sur le GT FUMPE. Ancien mode 'percentile' conservé dans le code pour comparaison.
+  detection_mode: bright
+  vessel_min_hu: 100          # seuil "lumen vasculaire opacifié"
+  max_hu: 400                 # exclut l'os
+  min_candidate_volume: 50    # supprime le petit bruit
+  max_candidate_volume: null  # pas de plafond (le cap à 5000 jetait les grosses embolies)
+  # --- Ancien mode percentile (désactivé, pour référence) ---
   thresholding:
     method: percentile
     percentile: 95
     min_hu: 50
-    max_hu: 400
-  morphology:
-    min_volume: 20
-    max_volume: 5000
 
 # config.yaml - Section Objectif 4
 radiomics:
