@@ -1,0 +1,12 @@
+2026-10-31 18:10:03,725 - backend.engines.registry - INFO - Moteur classique chargé (seuil 0.9043)
+2026-10-31 18:10:03,727 - backend.main - INFO - PE-Seg AI 0.1.0 prêt sur http://127.0.0.1:8000
+2026-10-31 18:16:08,488 - backend.engines.registry - INFO - Moteur classique chargé (seuil 0.9043)
+2026-10-31 18:16:08,489 - backend.main - INFO - PE-Seg AI 0.1.0 prêt sur http://127.0.0.1:8000
+2026-10-31 18:20:19,827 - backend.engines.registry - INFO - Moteur classique chargé (seuil 0.9043)
+2026-10-31 18:20:19,827 - backend.main - INFO - PE-Seg AI 0.1.0 prêt sur http://127.0.0.1:8000
+2026-10-31 18:21:55,568 - backend.services.jobs - INFO - Analyse 3f29ab89-96b0-48bb-a3c8-203b8a85714e terminée : 0 zones retenues
+2026-10-31 18:26:50,890 - backend.services.jobs - INFO - Analyse 88ceb23b-3bfb-414f-9d62-e3ff7bea5114 terminée : 3 zones retenues
+2026-10-31 18:35:48,147 - backend.services.jobs - INFO - Analyse 7889a325-8d24-42fc-b73f-f1e492afbfd9 terminée : 0 zones retenues
+2026-10-31 18:40:57,246 - backend.services.jobs - INFO - Analyse 77b1adf2-3f83-4200-9c9e-0dd820a52cd8 terminée : 0 zones retenues
+2026-10-31 18:42:04,649 - backend.services.jobs - INFO - Analyse 1fdbfec4-9ac7-48ea-8672-aa091bd2cc25 terminée : 0 zones retenues
+2026-10-31 18:44:58,866 - backend.services.jobs - INFO - Analyse ead1e8b8-955a-4143-b692-775b440895ba terminée : 4 zones retenues

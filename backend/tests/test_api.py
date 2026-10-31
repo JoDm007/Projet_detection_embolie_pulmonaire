@@ -44,6 +44,12 @@ def test_wrong_password_same_message_as_unknown_user(client, make_user):
     assert r1.json()["detail"] == r2.json()["detail"]
 
 
+def test_unknown_username_not_written_to_audit(client):
+    from backend.db.repositories import AuditRepo
+    login(client, "MonMotDePasse-123", "x")
+    assert all("MonMotDePasse" not in str(tuple(row)) for row in AuditRepo.last(10))
+
+
 def test_lockout_after_failures(client, make_user, settings):
     username, password = make_user()
     for _ in range(settings.login_max_failures):

@@ -29,7 +29,11 @@ def login(body: LoginIn, response: Response):
     if not ok or not user["active"]:
         if user:
             UserRepo.register_failure(user["id"], settings.login_max_failures, settings.lockout_minutes)
-        AuditRepo.log("connexion_echec", body.username.strip()[:64])
+            AuditRepo.log("connexion_echec", user["username"])
+        else:
+            # Identifiant inconnu : on ne l'enregistre pas (ce peut être un mot de passe tapé
+            # dans le mauvais champ)
+            AuditRepo.log("connexion_echec", None, None, "identifiant inconnu")
         raise HTTPException(status_code=401, detail=BAD_CREDENTIALS)
 
     UserRepo.reset_failures(user["id"])

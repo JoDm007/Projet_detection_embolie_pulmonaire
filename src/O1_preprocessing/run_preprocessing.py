@@ -28,7 +28,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.O1_preprocessing.loader import get_available_patients, load_patient_data
+from src.O1_preprocessing.loader import get_available_patients, load_patient_data, load_dicom_volume
 
 # ── Constantes de fenêtrage (alignées avec config.yaml et normalisation.py) ───
 HU_MIN = -600   # borne basse : coupe l'air profond, garde le parenchyme pulmonaire
@@ -40,6 +40,51 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+def write_meta(patient_id: str, patient_out: Path, meta: dict, shape) -> bool:
+    """
+    Sidecar meta.json : conserve le spacing réel (les .npy ne le stockent pas).
+    Indispensable pour que le mode PROCESSED fournisse la résolution (notebook 01, build_ml_dataset).
+    """
+    try:
+        spacing = meta.get('spacing', [1.0, 1.0]) if meta else [1.0, 1.0]
+        meta_out = {
+            'spacing': [float(spacing[0]), float(spacing[1])],
+            'slice_thickness': float(meta.get('slice_thickness', 1.0)) if meta else 1.0,
+            'slice_spacing': float(meta.get('slice_spacing', 1.0)) if meta else 1.0,
+            'original_shape': [int(x) for x in shape],
+            'hu_window': [HU_MIN, HU_MAX],
+            'normalized': True,
+        }
+        with open(patient_out / "meta.json", 'w', encoding='utf-8') as f:
+            json.dump(meta_out, f, indent=2)
+        return True
+    except Exception as e:
+        logger.warning(f"⚠️  {patient_id} : meta.json non sauvegardé ({e})")
+        return False
+
+
+def write_meta_only(patient_id: str, inventory: dict, output_dir: Path) -> bool:
+    """
+    Régénère UNIQUEMENT meta.json depuis l'en-tête DICOM, sans réécrire volume.npy / mask.npy.
+    (Les .npy du 23 oct. ont été produits sans meta.json.)
+    """
+    patient_out = output_dir / patient_id
+    vol_out = patient_out / "volume.npy"
+    if not vol_out.exists():
+        logger.error(f"❌ {patient_id} : {vol_out} absent — lancer le preprocessing complet")
+        return False
+    _, meta = load_dicom_volume(inventory['vol_paths'][patient_id])
+    if meta is None:
+        logger.error(f"❌ {patient_id} : en-tête DICOM illisible")
+        return False
+    shape = np.load(vol_out, mmap_mode='r').shape  # lecture de l'en-tête seulement
+    ok = write_meta(patient_id, patient_out, meta, shape)
+    if ok:
+        logger.info(f"✅ {patient_id} : meta.json | spacing={[round(float(s), 3) for s in meta['spacing']]} "
+                    f"| slice_spacing={float(meta['slice_spacing']):.2f} mm")
+    return ok
 
 
 def preprocess_patient(patient_id: str,
@@ -97,22 +142,7 @@ def preprocess_patient(patient_id: str,
     np.save(vol_out,  vol_proc)
     np.save(mask_out, mask_proc)
 
-    # Sidecar meta.json : conserve le spacing réel (les .npy ne le stockent pas).
-    # Indispensable pour que le mode PROCESSED affiche la bonne résolution (cf. notebooks).
-    try:
-        spacing = meta.get('spacing', [1.0, 1.0]) if meta else [1.0, 1.0]
-        meta_out = {
-            'spacing': [float(spacing[0]), float(spacing[1])],
-            'slice_thickness': float(meta.get('slice_thickness', 1.0)) if meta else 1.0,
-            'slice_spacing': float(meta.get('slice_spacing', 1.0)) if meta else 1.0,
-            'original_shape': [int(x) for x in vol_proc.shape],
-            'hu_window': [HU_MIN, HU_MAX],
-            'normalized': True,
-        }
-        with open(patient_out / "meta.json", 'w', encoding='utf-8') as f:
-            json.dump(meta_out, f, indent=2)
-    except Exception as e:
-        logger.warning(f"⚠️  {patient_id} : meta.json non sauvegardé ({e})")
+    write_meta(patient_id, patient_out, meta, vol_proc.shape)
 
     voxels_embolie = int(mask_proc.sum())
     pct = 100 * voxels_embolie / mask_proc.size
@@ -131,6 +161,10 @@ def main():
     parser.add_argument(
         "--force", action="store_true",
         help="Écraser les fichiers .npy existants"
+    )
+    parser.add_argument(
+        "--meta-only", action="store_true",
+        help="Ne régénérer que les meta.json (spacing DICOM), sans toucher aux .npy"
     )
     parser.add_argument(
         "--patient", type=str, default=None,
@@ -177,7 +211,10 @@ def main():
     fail_list     = []
 
     for patient_id in patients:
-        ok = preprocess_patient(patient_id, inventory, output_dir, force=args.force)
+        if args.meta_only:
+            ok = write_meta_only(patient_id, inventory, output_dir)
+        else:
+            ok = preprocess_patient(patient_id, inventory, output_dir, force=args.force)
         if ok:
             success_count += 1
         else:
