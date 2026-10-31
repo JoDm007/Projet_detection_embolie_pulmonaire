@@ -1,0 +1,96 @@
+/* frontend/css/base.css — couleurs et typographie (reprises de landing_page/, polices système : hors ligne) */
+:root {
+  --bg: #090D16;
+  --bg-alt: #0C1220;
+  --card: #0F172A;
+  --card-hover: #1E293B;
+  --border: rgba(255, 255, 255, 0.09);
+  --primary: #06B6D4;
+  --primary-strong: #0891B2;
+  --secondary: #3B82F6;
+  --danger: #FF3B5C;
+  --warning: #F59E0B;
+  --success: #10B981;
+  --text: #F1F5F9;
+  --muted: #94A3B8;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 var(--font);
+}
+
+[hidden] { display: none !important; }
+
+h2 { font-size: 1rem; margin: 0 0 12px; letter-spacing: 0.01em; }
+
+.muted { color: var(--muted); }
+.footnote { color: var(--muted); font-size: 0.8rem; margin: 10px 0 0; }
+.error { color: var(--danger); font-size: 0.875rem; margin: 8px 0 0; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+label { display: block; font-size: 0.85rem; color: var(--muted); margin: 12px 0 0; }
+
+input, select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 9px 11px;
+  background: var(--bg-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+input:focus, select:focus, .btn:focus-visible, .dropzone:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:hover { background: var(--card-hover); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--primary-strong); border-color: var(--primary); color: #fff; width: 100%; margin-top: 14px; }
+.btn-primary:hover { background: var(--primary); }
+.btn-ghost { background: transparent; }
+.btn-small { padding: 5px 10px; font-size: 0.8rem; font-weight: 500; }
+.btn-small.active { border-color: var(--primary); color: var(--primary); }
+.btn-danger-text { background: transparent; border: none; color: var(--muted); padding: 2px 6px; }
+.btn-danger-text:hover { color: var(--danger); background: transparent; }
+
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.05rem; }
+.brand-lg { font-size: 1.5rem; }
+.brand-mark {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--danger);
+  box-shadow: 0 0 0 4px rgba(255, 59, 92, 0.2), 0 0 14px rgba(255, 59, 92, 0.5);
+}

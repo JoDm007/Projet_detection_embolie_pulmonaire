@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PE-Seg AI</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/viewer.css">
+  <!-- Viewer médical WebGL, copie locale (voir vendor/niivue/README.md) -->
+  <script src="vendor/niivue/niivue.umd.js" defer></script>
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════ Écran de connexion ═══════════════ -->
+<section id="view-login" class="view login-view" hidden>
+  <form id="login-form" class="card login-card" autocomplete="on">
+    <div class="brand brand-lg"><span class="brand-mark" aria-hidden="true"></span>PE-Seg AI</div>
+    <p class="muted">Aide à la détection de l'embolie pulmonaire sur angioscanner</p>
+    <label>Identifiant
+      <input name="username" autocomplete="username" required maxlength="64">
+    </label>
+    <label>Mot de passe
+      <input name="password" type="password" autocomplete="current-password" required maxlength="256">
+    </label>
+    <p id="login-error" class="error" role="alert" hidden></p>
+    <button type="submit" class="btn btn-primary">Se connecter</button>
+    <p class="footnote">Application locale : aucune image ne quitte cette machine.</p>
+  </form>
+</section>
+
+<!-- ═══════════════ Application ═══════════════ -->
+<section id="view-app" class="view" hidden>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span>PE-Seg AI</div>
+    <div id="engine-status" class="engine-status"></div>
+    <div class="user-box">
+      <span id="user-name"></span>
+      <button id="logout-btn" class="btn btn-ghost" type="button">Déconnexion</button>
+    </div>
+  </header>
+
+  <div class="disclaimer" role="note">
+    Outil d'aide à la décision en cours de développement — <strong>ne remplace pas la lecture du radiologue</strong>.
+  </div>
+
+  <main class="layout">
+    <!-- Colonne gauche : lancer et suivre les analyses -->
+    <aside class="sidebar">
+      <div class="card">
+        <h2>Nouvelle analyse</h2>
+        <div class="tabs" role="tablist">
+          <button class="tab active" type="button" data-tab="demo" role="tab">Cas FUMPE</button>
+          <button class="tab" type="button" data-tab="upload" role="tab">Importer un scanner</button>
+        </div>
+
+        <div class="tab-panel" data-panel="demo">
+          <label>Cas de démonstration (jeu public FUMPE)
+            <select id="demo-select"></select>
+          </label>
+          <button id="demo-run" class="btn btn-primary" type="button">Analyser ce cas</button>
+        </div>
+
+        <div class="tab-panel" data-panel="upload" hidden>
+          <label id="dropzone" class="dropzone" tabindex="0">
+            <input id="upload-input" type="file" accept=".zip,application/zip" hidden>
+            <span>Déposer une archive <strong>.zip</strong> d'une série DICOM<br>
+              <span class="muted">ou cliquer pour choisir</span></span>
+          </label>
+          <p class="footnote">Les données sont anonymisées dès l'import puis effacées automatiquement.</p>
+        </div>
+
+        <label>Moteur d'analyse
+          <select id="engine-select"></select>
+        </label>
+        <p id="submit-error" class="error" role="alert" hidden></p>
+      </div>
+
+      <div class="card">
+        <h2>Analyses</h2>
+        <ul id="analysis-list" class="analysis-list"></ul>
+        <p id="analysis-empty" class="muted">Aucune analyse pour le moment.</p>
+      </div>
+    </aside>
+
+    <!-- Colonne droite : visualisation et résultats -->
+    <section class="workspace">
+      <div class="card viewer-card">
+        <div class="viewer-toolbar">
+          <div class="btn-group" id="layout-buttons">
+            <button type="button" class="btn btn-small" data-layout="axial">Axial</button>
+            <button type="button" class="btn btn-small" data-layout="coronal">Coronal</button>
+            <button type="button" class="btn btn-small" data-layout="sagittal">Sagittal</button>
+            <button type="button" class="btn btn-small active" data-layout="multi">3 plans</button>
+            <button type="button" class="btn btn-small" data-layout="render">3D</button>
+          </div>
+          <div class="btn-group" id="window-buttons">
+            <button type="button" class="btn btn-small active" data-window="vessels">Vaisseaux</button>
+            <button type="button" class="btn btn-small" data-window="lung">Poumon</button>
+          </div>
+          <label class="toggle"><input type="checkbox" id="toggle-overlay" checked> Zones IA</label>
+          <label class="toggle" id="toggle-gt-wrap" hidden><input type="checkbox" id="toggle-gt"> Vérité terrain</label>
+        </div>
+        <div class="viewer-stage">
+          <canvas id="viewer-canvas"></canvas>
+          <div id="viewer-placeholder" class="viewer-placeholder">
+            Sélectionner une analyse terminée pour l'afficher.
+          </div>
+          <div id="viewer-loading" class="viewer-placeholder" hidden>Chargement du volume…</div>
+        </div>
+        <div class="legend">
+          <span><i class="swatch swatch-ai"></i>Zone retenue par l'IA</span>
+          <span id="legend-gt" hidden><i class="swatch swatch-gt"></i>Vérité terrain (radiologues FUMPE)</span>
+        </div>
+      </div>
+
+      <div class="card" id="results-card" hidden>
+        <div class="results-head">
+          <h2 id="results-title">Résultats</h2>
+          <span id="results-model" class="muted"></span>
+        </div>
+        <div id="results-stats" class="stats"></div>
+        <ul id="results-warnings" class="warnings"></ul>
+        <table class="findings">
+          <thead>
+            <tr><th>#</th><th>Score</th><th>Côté</th><th>Coupes</th><th>Volume</th><th></th></tr>
+          </thead>
+          <tbody id="findings-body"></tbody>
+        </table>
+        <p id="findings-empty" class="muted" hidden>Aucune zone ne dépasse le seuil du moteur.</p>
+        <p id="operating-point" class="footnote"></p>
+      </div>
+    </section>
+  </main>
+</section>
+
+</body>
+</html>
