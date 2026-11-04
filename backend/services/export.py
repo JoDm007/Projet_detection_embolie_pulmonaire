@@ -1,6 +1,8 @@
 # backend/services/export.py
 # Sorties d'une analyse, lues par le viewer NiiVue :
-#   volume.nii.gz       CT en HU (int16)
+#   volume.nii          CT en HU (int16), NON compressé : le navigateur décompresse le gzip en
+#                       JavaScript, ce qui prenait plusieurs secondes pour ~200 Mo de voxels.
+#                       En local, lire 200 Mo depuis le disque est bien plus rapide.
 #   overlay.nii.gz      zones retenues (label k = lésion k du tableau)
 #   groundtruth.nii.gz  vérité terrain FUMPE (cas de démo uniquement, pour l'affichage)
 #   findings.json       tableau des lésions + point de fonctionnement
@@ -17,7 +19,7 @@ import numpy as np
 
 from backend.engines.base import AnalysisResult
 
-VOLUME_FILE = "volume.nii.gz"
+VOLUME_FILE = "volume.nii"
 OVERLAY_FILE = "overlay.nii.gz"
 GROUNDTRUTH_FILE = "groundtruth.nii.gz"
 FINDINGS_FILE = "findings.json"

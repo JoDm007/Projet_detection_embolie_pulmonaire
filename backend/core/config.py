@@ -49,6 +49,10 @@ class Settings:
     # Rétention des analyses (cf. plan2 § 4.6)
     retention_hours: int = 24
 
+    # RAM libre exigée pour démarrer une analyse (pic mesuré ~2–3 Go sur un CT 512×512×~250).
+    # En dessous, l'analyse est refusée plutôt que de saturer la machine (swap, gel du PC).
+    min_free_ram_gb: float = 4.0
+
     @property
     def db_path(self) -> Path:
         return self.data_dir / "app.db"
@@ -83,4 +87,5 @@ def get_settings() -> Settings:
         login_max_failures=int(_env("LOGIN_MAX_FAILURES", str(defaults.login_max_failures))),
         lockout_minutes=int(_env("LOCKOUT_MINUTES", str(defaults.lockout_minutes))),
         retention_hours=int(_env("RETENTION_HOURS", str(defaults.retention_hours))),
+        min_free_ram_gb=float(_env("MIN_FREE_RAM_GB", str(defaults.min_free_ram_gb))),
     )

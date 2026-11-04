@@ -43,3 +43,24 @@ def test_manifest_detects_tampering(tmp_path):
 
 def test_missing_manifest(tmp_path):
     assert "non installés" in verify_manifest(tmp_path)
+
+
+def test_build_findings_sorts_by_score_and_labels_overlay():
+    from backend.engines.findings import build_findings
+    labeled = np.zeros((4, 6, 10), dtype=np.int32)
+    labeled[1:3, 1:3, 1:3] = 1          # 8 voxels, côté x < largeur/2
+    labeled[2, 4, 7:9] = 2              # 2 voxels, côté x ≥ largeur/2
+    findings, overlay = build_findings(labeled, [(0.3, 1), (0.9, 2)], spacing=(2.0, 1.0, 0.5))
+
+    assert [f.id for f in findings] == [1, 2]
+    assert [f.score for f in findings] == [0.9, 0.3]        # tri par score décroissant
+    assert int((overlay == 1).sum()) == 2 and int((overlay == 2).sum()) == 8
+    assert findings[0].side == "gauche" and findings[1].side == "droit"
+    assert findings[1].volume_mm3 == 8 * 2.0 * 1.0 * 0.5
+    assert findings[1].slice_range == (1, 2)
+
+
+def test_build_findings_empty():
+    from backend.engines.findings import build_findings
+    findings, overlay = build_findings(np.zeros((2, 2, 2), dtype=np.int32), [], (1, 1, 1))
+    assert findings == [] and not overlay.any()

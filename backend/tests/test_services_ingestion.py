@@ -4,7 +4,8 @@ import zipfile
 
 import pytest
 
-from backend.services.ingestion import UploadRejected, safe_extract_dicom_zip, save_upload_stream
+from backend.services.ingestion import (UploadRejected, UploadTooLarge, safe_extract_dicom_zip,
+                                        save_upload_stream)
 
 LIMITS = dict(max_files=100, max_total_bytes=10 * 2**20, max_ratio=200)
 
@@ -62,6 +63,6 @@ def test_upload_stream_checks_signature_and_size(tmp_path):
     buf = io.BytesIO()
     _zip(buf, {"a.dcm": b"x" * 5000}, compression=zipfile.ZIP_STORED)
     data = buf.getvalue()
-    with pytest.raises(UploadRejected, match="volumineuse"):
+    with pytest.raises(UploadTooLarge, match="volumineuse"):
         save_upload_stream(io.BytesIO(data).read, tmp_path / "u.zip", 100)
     assert save_upload_stream(io.BytesIO(data).read, tmp_path / "u.zip", 2**20) == len(data)

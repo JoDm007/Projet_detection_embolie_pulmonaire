@@ -1,5 +1,6 @@
 // frontend/js/analyses.js — liste des analyses et suivi de leur progression (polling)
 import { api } from './api.js';
+import { el } from './dom.js';
 
 const POLL_MS = 2000;
 const STATUS_LABEL = { queued: 'En attente', running: 'En cours', done: 'Terminée', failed: 'Échec' };
@@ -7,13 +8,6 @@ const STATUS_LABEL = { queued: 'En attente', running: 'En cours', done: 'Termin�
 let pollTimer = null;
 let selectedId = null;
 let handlers = {};
-
-function el(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;   // textContent : jamais d'HTML injecté
-  return node;
-}
 
 function formatDate(iso) {
   return new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -87,10 +81,14 @@ export async function refresh() {
   document.getElementById('analysis-list').replaceChildren(...list.map(renderItem));
   document.getElementById('analysis-empty').hidden = list.length > 0;
 
-  // Ouvre automatiquement une analyse qu'on vient de lancer, dès qu'elle est terminée
+  // Ouvre automatiquement une analyse qu'on vient de lancer, dès qu'elle est terminée — sauf si
+  // une autre est déjà affichée : charger un 2e volume (~1 Go en mémoire avec ses textures) sans
+  // action de l'utilisateur peut saturer la RAM. Elle reste alors à un clic dans la liste.
   if (handlers.pendingOpen) {
     const target = list.find((a) => a.id === handlers.pendingOpen);
-    if (target && target.status === 'done') {
+    if (target && target.status === 'done' && selectedId !== null) {
+      handlers.pendingOpen = null;
+    } else if (target && target.status === 'done') {
       handlers.pendingOpen = null;
       selectedId = target.id;
       handlers.onSelect?.(target);

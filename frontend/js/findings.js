@@ -1,12 +1,5 @@
 // frontend/js/findings.js — résumé de l'analyse et tableau des zones suspectes
-import { goToVoxel } from './viewer.js';
-
-function el(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
+import { el } from './dom.js';
 
 function stat(value, label) {
   const box = el('div', 'stat');
@@ -17,7 +10,8 @@ function stat(value, label) {
 const pct = (x) => (x === undefined || x === null ? 'n/a' : `${Math.round(x * 100)} %`);
 const volume = (mm3) => (mm3 >= 1000 ? `${(mm3 / 1000).toFixed(2)} cm³` : `${Math.round(mm3)} mm³`);
 
-export function renderFindings(analysis, data) {
+// onFindingClick(centroid_vox) : appelé au clic sur une ligne (ex. centrer le viewer)
+export function renderFindings(analysis, data, { onFindingClick } = {}) {
   document.getElementById('results-card').hidden = false;
   document.getElementById('results-title').textContent =
     analysis.source === 'demo' ? `Résultats — cas ${analysis.case_id}` : 'Résultats — scanner importé';
@@ -52,7 +46,7 @@ export function renderFindings(analysis, data) {
     );
     tr.addEventListener('click', () => {
       body.querySelectorAll('tr').forEach((r) => r.classList.toggle('active', r === tr));
-      goToVoxel(f.centroid_vox);
+      onFindingClick?.(f.centroid_vox);
     });
     return tr;
   }));

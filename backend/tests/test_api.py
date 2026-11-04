@@ -20,6 +20,13 @@ def test_security_headers(client):
     assert r.headers["cache-control"] == "no-store"
 
 
+def test_security_headers_on_static_frontend(client):
+    r = client.get("/")
+    assert r.status_code == 200
+    assert r.headers["x-content-type-options"] == "nosniff"
+    assert "cache-control" not in r.headers or r.headers["cache-control"] != "no-store"
+
+
 def test_protected_routes_require_session(client):
     for path in ("/api/auth/me", "/api/analyses", "/api/cases/demo"):
         assert client.get(path).status_code == 401

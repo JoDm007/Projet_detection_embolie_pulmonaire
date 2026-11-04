@@ -11,16 +11,17 @@ from backend.core.config import get_settings
 from backend.db.repositories import AnalysisRepo, AuditRepo
 from backend.schemas.analyses import AnalysisOut, DemoRequest, SubmitOut
 from backend.services import export
-from backend.services.ingestion import UploadRejected, list_demo_cases, save_upload_stream
+from backend.services.ingestion import (UploadRejected, UploadTooLarge, list_demo_cases,
+                                        save_upload_stream)
 
 router = APIRouter(prefix="/api/analyses", tags=["analyses"])
 
 CASE_ID_RE = re.compile(r"^PAT\d{3}$")
 # Fichiers servis au viewer : liste fermée, jamais un nom venant de la requête
 SERVED_FILES = {
-    "volume.nii.gz": export.VOLUME_FILE,
-    "overlay.nii.gz": export.OVERLAY_FILE,
-    "groundtruth.nii.gz": export.GROUNDTRUTH_FILE,
+    "volume.nii": (export.VOLUME_FILE, "application/octet-stream"),
+    "overlay.nii.gz": (export.OVERLAY_FILE, "application/gzip"),
+    "groundtruth.nii.gz": (export.GROUNDTRUTH_FILE, "application/gzip"),
 }
 
 
@@ -38,7 +39,7 @@ def _owned_analysis(analysis_id: str, user):
 
 
 def _check_engine(jobs, engine: str):
-    slot = jobs.engines.get(engine)
+    slot = jobs.slot(engine)
     if slot is None:
         raise HTTPException(status_code=400, detail=f"Moteur inconnu : {engine}.")
     if slot.engine is None:
@@ -58,7 +59,7 @@ def submit_upload(file: UploadFile = File(...), engine: str = Form("classique"),
         save_upload_stream(file.file.read, tmp, settings.max_upload_mb * 2**20)
     except UploadRejected as exc:
         tmp.unlink(missing_ok=True)
-        status = 413 if "volumineuse" in str(exc) else 400
+        status = 413 if isinstance(exc, UploadTooLarge) else 400
         AuditRepo.log("upload_refuse", user["username"], None, str(exc))
         raise HTTPException(status_code=status, detail=str(exc))
     analysis_id = jobs.submit(user, engine, "upload", upload_path=tmp)
@@ -103,10 +104,11 @@ def get_file(analysis_id: str, filename: str, user=Depends(current_user), jobs=D
     row = _owned_analysis(analysis_id, user)
     if filename not in SERVED_FILES or row["status"] != "done":
         raise HTTPException(status_code=404, detail="Fichier introuvable.")
-    path = jobs.job_dir(analysis_id) / SERVED_FILES[filename]
+    stored_name, media_type = SERVED_FILES[filename]
+    path = jobs.job_dir(analysis_id) / stored_name
     if not path.exists():
         raise HTTPException(status_code=404, detail="Fichier introuvable.")
-    return FileResponse(path, media_type="application/gzip", filename=filename)
+    return FileResponse(path, media_type=media_type, filename=filename)
 
 
 @router.delete("/{analysis_id}", status_code=204, dependencies=[Depends(csrf_protect)])

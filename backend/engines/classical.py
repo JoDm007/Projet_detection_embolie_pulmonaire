@@ -20,7 +20,8 @@ from scipy import ndimage
 from src.O2_classical_detection.detector import ClassicalDetector
 from src.O3_radiomics.feature_extractor import EmbolismFeatureExtractor
 
-from .base import AnalysisResult, EngineUnavailable, Finding, ProgressFn
+from .base import AnalysisResult, EngineUnavailable, ProgressFn
+from .findings import build_findings
 
 logger = logging.getLogger("backend.engines.classical")
 
@@ -133,36 +134,17 @@ class ClassicalEngine:
                                           progress, (0.45, 0.85))
 
         progress("O4 — classification des candidats", 0.88)
-        findings: list[Finding] = []
-        overlay = np.zeros(labeled.shape, dtype=np.uint16)
+        kept: list[tuple[float, int]] = []
         if rows:
             cols = list(scaler.feature_names_in_)
+            # Valeurs manquantes/infinies → 0 AVANT normalisation : exactement comme
+            # train_classifier.py (load_data), sinon le modèle verrait d'autres entrées qu'à l'entraînement.
             X = (pd.DataFrame(rows).reindex(columns=cols)
                  .replace([np.inf, -np.inf], np.nan).fillna(0))
             Xs = pd.DataFrame(scaler.transform(X), columns=cols)
             proba = model.predict_proba(Xs)[:, 1]
-
-            kept = sorted(((float(p), lbl) for p, lbl in zip(proba, labels) if p > self.threshold),
-                          reverse=True)
-            objects = ndimage.find_objects(labeled)
-            voxel_mm3 = float(np.prod(spacing))
-            width = labeled.shape[2]
-            for idx, (score, lbl) in enumerate(kept, start=1):
-                sl = objects[lbl - 1]
-                region = labeled[sl] == lbl
-                overlay[sl][region] = idx
-                zyx = np.argwhere(region).mean(axis=0) + [s.start for s in sl]
-                z, y, x = (int(round(c)) for c in zyx)
-                n_vox = int(region.sum())
-                findings.append(Finding(
-                    id=idx, score=round(score, 4),
-                    slice_range=(int(sl[0].start), int(sl[0].stop - 1)),
-                    centroid_vox=(x, y, z),
-                    centroid_mm=(round(x * spacing[2], 1), round(y * spacing[1], 1),
-                                 round(z * spacing[0], 1)),
-                    # DICOM : l'axe X des colonnes va vers la gauche du patient
-                    side="droit" if x < width / 2 else "gauche",
-                    n_voxels=n_vox, volume_mm3=round(n_vox * voxel_mm3, 1)))
+            kept = [(float(p), lbl) for p, lbl in zip(proba, labels) if p > self.threshold]
+        findings, overlay = build_findings(labeled, kept, spacing)
 
         warnings = []
         if case_id is None:

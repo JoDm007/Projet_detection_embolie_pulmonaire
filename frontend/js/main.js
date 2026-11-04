@@ -4,7 +4,7 @@ import { initAnalyses, refresh, stopPolling, watch } from './analyses.js';
 import { initLogin, initLogout } from './auth.js';
 import { clearFindings, renderFindings } from './findings.js';
 import { initSubmit, loadSubmitOptions } from './upload.js';
-import { clearViewer, initViewer, showAnalysis } from './viewer.js';
+import { clearViewer, goToVoxel, initViewer, showAnalysis } from './viewer.js';
 
 const loginView = document.getElementById('view-login');
 const appView = document.getElementById('view-app');
@@ -35,7 +35,7 @@ async function showApp(user) {
 async function openAnalysis(analysis) {
   try {
     const data = await api.findings(analysis.id);
-    renderFindings(analysis, data);
+    renderFindings(analysis, data, { onFindingClick: goToVoxel });
     await showAnalysis(analysis.id, data.has_groundtruth);
   } catch (err) {
     alert(err.message);

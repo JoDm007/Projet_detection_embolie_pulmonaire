@@ -23,6 +23,10 @@ class UploadRejected(Exception):
     """Archive refusée ; message destiné à l'utilisateur."""
 
 
+class UploadTooLarge(UploadRejected):
+    """Archive au-delà de la taille maximale (HTTP 413)."""
+
+
 def save_upload_stream(read_chunk, dest: Path, max_bytes: int) -> int:
     """Écrit un upload sur disque par blocs, en coupant dès que la taille maximale est dépassée.
     read_chunk(n) -> bytes. Vérifie aussi la signature d'une archive zip."""
@@ -36,7 +40,7 @@ def save_upload_stream(read_chunk, dest: Path, max_bytes: int) -> int:
                 raise UploadRejected("Le fichier n'est pas une archive .zip.")
             total += len(chunk)
             if total > max_bytes:
-                raise UploadRejected(f"Archive trop volumineuse (maximum {max_bytes // 2**20} Mo).")
+                raise UploadTooLarge(f"Archive trop volumineuse (maximum {max_bytes // 2**20} Mo).")
             out.write(chunk)
     if total == 0:
         raise UploadRejected("Fichier vide.")
@@ -129,4 +133,4 @@ def ingest_demo_case(case_id: str, fumpe_dir: Path) -> tuple[np.ndarray, tuple, 
     if volume is None:
         raise DicomRejected(f"Lecture du cas {case_id} impossible.")
     gt = (mask > 0).astype(np.uint8) if mask is not None and mask.shape == volume.shape else None
-    return volume.astype(np.float32), _spacing_from_meta(meta), gt
+    return volume.astype(np.float32, copy=False), _spacing_from_meta(meta), gt

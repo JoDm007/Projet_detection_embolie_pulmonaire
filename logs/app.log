@@ -24,3 +24,13 @@
 2026-11-02 20:25:40,891 - backend.engines.registry - INFO - Moteur classique chargé (seuil 0.9043)
 2026-11-02 20:25:40,891 - backend.main - INFO - PE-Seg AI 0.1.0 prêt sur http://127.0.0.1:8000
 2026-11-02 20:26:52,265 - backend.services.jobs - INFO - Analyse 42832ce0-4431-49d7-96f5-4052151a357c terminée : 4 zones retenues
+2026-11-03 09:14:52,426 - backend.engines.registry - INFO - Moteur classique chargé (seuil 0.9043)
+2026-11-03 09:14:52,426 - backend.main - INFO - PE-Seg AI 0.1.0 prêt sur http://127.0.0.1:8000
+2026-11-03 09:16:50,234 - backend.services.jobs - INFO - Analyse 02cfa987-65fe-4e15-ad57-cdc1f42b21b6 terminée : 4 zones retenues
+2026-11-03 09:19:28,372 - backend.services.jobs - INFO - Analyse c381ce2c-df75-4efd-b655-9ee8a359cace terminée : 0 zones retenues
+2026-11-03 13:15:47,756 - backend.engines.registry - INFO - Moteur classique chargé (seuil 0.9043)
+2026-11-03 13:15:47,759 - backend.main - INFO - PE-Seg AI 0.1.0 prêt sur http://127.0.0.1:8000
+2026-11-03 13:16:12,066 - backend.engines.registry - INFO - Moteur classique chargé (seuil 0.9043)
+2026-11-03 13:16:12,067 - backend.main - INFO - PE-Seg AI 0.1.0 prêt sur http://127.0.0.1:8000
+2026-11-03 13:27:18,513 - backend.services.jobs - INFO - Analyse 648dae35-2502-4101-b9db-544701c7c62f : 3.7 Go de RAM libre au démarrage
+2026-11-03 13:27:18,533 - backend.services.jobs - WARNING - Analyse 648dae35-2502-4101-b9db-544701c7c62f refusée : Mémoire insuffisante : 3.7 Go de RAM libre, 4 Go nécessaires. Fermez d'autres applications (ou arrêtez WSL : « wsl --shutdown ») puis relancez l'analyse.

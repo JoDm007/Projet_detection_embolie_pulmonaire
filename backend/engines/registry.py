@@ -16,6 +16,7 @@ import pandas as pd
 
 from backend.core.security import sha256_file
 
+from .base import InferenceEngine
 from .unet import UNAVAILABLE_REASON as UNET_REASON
 
 logger = logging.getLogger("backend.engines.registry")
@@ -28,7 +29,7 @@ MANIFEST = "manifest.json"
 class EngineSlot:
     name: str
     label: str
-    engine: Optional[object]      # instance prête, ou None si indisponible
+    engine: Optional[InferenceEngine]  # instance prête, ou None si indisponible
     reason: Optional[str] = None  # pourquoi il est indisponible
 
 
@@ -117,20 +118,29 @@ def verify_manifest(directory: Path) -> Optional[str]:
 
 
 # ─────────────────────────────── Chargement ───────────────────────────────
-def load_engines(models_dir: Path, project_root: Path) -> dict[str, EngineSlot]:
-    slots: dict[str, EngineSlot] = {}
-
+def _load_classical(models_dir: Path, project_root: Path) -> EngineSlot:
     from .classical import ClassicalEngine
     classical_dir = models_dir / CLASSICAL_DIR
     problem = verify_manifest(classical_dir)
     if problem:
         logger.warning(f"Moteur classique indisponible : {problem}")
-        slots[ClassicalEngine.name] = EngineSlot(ClassicalEngine.name, ClassicalEngine.label,
-                                                 None, problem)
-    else:
-        engine = ClassicalEngine(classical_dir, project_root)
-        slots[engine.name] = EngineSlot(engine.name, engine.label, engine)
-        logger.info(f"Moteur classique chargé (seuil {engine.threshold:.4f})")
+        return EngineSlot(ClassicalEngine.name, ClassicalEngine.label, None, problem)
+    engine = ClassicalEngine(classical_dir, project_root)
+    logger.info(f"Moteur classique chargé (seuil {engine.threshold:.4f})")
+    return EngineSlot(engine.name, engine.label, engine)
 
-    slots["unet"] = EngineSlot("unet", "U-Net 3D — segmentation voxel par voxel (O5)", None, UNET_REASON)
+
+def _load_unet(models_dir: Path, project_root: Path) -> EngineSlot:
+    return EngineSlot("unet", "U-Net 3D — segmentation voxel par voxel (O5)", None, UNET_REASON)
+
+
+# Brancher un moteur = écrire son chargeur et l'ajouter ici ; load_engines ne change pas.
+ENGINE_LOADERS = (_load_classical, _load_unet)
+
+
+def load_engines(models_dir: Path, project_root: Path) -> dict[str, EngineSlot]:
+    slots: dict[str, EngineSlot] = {}
+    for loader in ENGINE_LOADERS:
+        slot = loader(models_dir, project_root)
+        slots[slot.name] = slot
     return slots
