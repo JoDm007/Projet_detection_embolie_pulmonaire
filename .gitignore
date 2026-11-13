@@ -1,5 +1,6 @@
 #Environnement virtuel
 EP_env/
+NN_env/
 
 # Données (Trop lourd pour GitHub)
 data/

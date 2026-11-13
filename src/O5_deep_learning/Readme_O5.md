@@ -1,71 +1,170 @@
-# 📌 Module O5 : Deep Learning & Segmentation 3D U-Net
+# Module O5 — Deep Learning nnU-Net-style (PyTorch)
+
+## Pipeline actif : `nnunet_pe.py`
+
+Fichier unique auto-suffisant contenant le pipeline complet de segmentation 3D de l'embolie pulmonaire.
 
 ---
 
-## 💡 Le Module O5 en 2 Mots (Pour tous)
+## Pourquoi nnU-Net-style ?
 
-Contrairement au Machine Learning classique (O3+O4) qui nécessite d'extraire manuellement des formes et des textures, le **Deep Learning (O5)** agit comme un **œil d'expert médical virtuel**. 
-
-Il parcourt l'intégralité du volume scanner en 3D tranche par tranche grâce à un réseau de neurones artificiels nommé **U-Net 3D**, qui apprend de lui-même à détecter et contourner automatiquement l'emplacement exact des caillots sanguins au millimètre près (analyse au niveau voxel).
-
----
-
-## 🎯 Enjeux & Rôle dans le Projet
-
-* **Segmentation Voxel-Level Précise** : Produit une carte de probabilité 3D où chaque sous-élément (voxel) du poumon reçoit un score indiquant s'il appartient à une embolie ou au tissu sain.
-* **Architecture U-Net 3D** :
-  * **Encoder (Contraction)** : Capture le contexte anatomique global et la géométrie des artères.
-  * **Decoder (Expansion)** : Restaure la résolution spatiale fine pour délimiter les contours exacts de la lésion.
-  * **Skip Connections** : Transfèrent les détails haute résolution de l'encodeur vers le décodeur sans perte d'information spatiale.
-* **Détection Directe Sans Étape de Candidats** : Le U-Net 3D peut prédire l'embolie directement sur le volume normalisé sans dépendre du filtre classique O2.
+| Critère | `unet_3d_keras.py` (archivé) | `nnunet_pe.py` (actif) |
+|---|---|---|
+| Framework | TensorFlow / Keras | **PyTorch** |
+| Normalisation | BatchNorm (instable batch=1-2) | **InstanceNorm3d** (stable à batch=1) |
+| Preprocessing | Aucun (fixe) | **Adaptatif** (percentile 0.5/99.5, patch size calculé) |
+| Loss | Cross-Entropy seule | **Dice + BCE combinés** |
+| Inférence | Resize brutal | **Sliding window gaussien, overlap 50 %** |
+| Augmentation 3D | Basique (flip, bruit) | **Complète** (élastique, gamma, mirroring, rotation) |
 
 ---
 
-## 📂 Contenu du Package `src/O5_deep_learning/`
+## Classes disponibles
 
-| Fichier Python | Rôle & Contenu Concret |
-| :--- | :--- |
-| [`unet_3d.py`](file:///f:/Nouveau%20dossier/Projets/Projet_detection_embolie_pulmonaire/src/O5_deep_learning/unet_3d.py) | Architecture complète du **U-Net 3D** (Blocs `Conv3D`, `BatchNormalization`, `Dropout`, `UpSampling3D` et connexions saautées). |
-| [`cnn_2d.py`](file:///f:/Nouveau%20dossier/Projets/Projet_detection_embolie_pulmonaire/src/O5_deep_learning/cnn_2d.py) | Modèle CNN 2D pour la détection coupe par coupe (approche baseline ultra-rapide). |
-| [`cnn_3d.py`](file:///f:/Nouveau%20dossier/Projets/Projet_detection_embolie_pulmonaire/src/O5_deep_learning/cnn_3d.py) | ResNet 3D / Classifier CNN 3D pour la classification de sous-volumes (patchs 3D). |
-| [`data_generator.py`](file:///f:/Nouveau%20dossier/Projets/Projet_detection_embolie_pulmonaire/src/O5_deep_learning/data_generator.py) | Générateur de données en streaming (`Dataset` / `Sequence`) gérant le chargement continu des patchs 3D `.npy` sur RAM/GPU. |
-| [`train.py`](file:///f:/Nouveau%20dossier/Projets/Projet_detection_embolie_pulmonaire/src/O5_deep_learning/train.py) | Script principal d'entraînement (Loss mixte Dice + Focal Loss, Early Stopping, enregistrement du meilleur modèle `.pth` / `.h5`). |
-| [`predict.py`](file:///f:/Nouveau%20dossier/Projets/Projet_detection_embolie_pulmonaire/src/O5_deep_learning/predict.py) | Moteur d'inférence 3D par fenêtres glissantes (*sliding window*) reconstruisant le masque binaire final du patient. |
-
----
-
-## 🔄 Pipeline d'Exécution
-
-```mermaid
-flowchart TD
-    A["Volume 3D Normalise (O1)"] --> B["data_generator.py\n(Extraction de patchs 3D 64x64x64)"]
-    B --> C["unet_3d.py\n(Reseau de Neurones 3D Encoder/Decoder)"]
-    C --> D["train.py\n(Optimisation Dice + Focal Loss sur GPU)"]
-    D --> E["Poids sauvegardes : best_unet3d.pth / best_model.h5"]
-    E --> F["predict.py\n(Reconstruction 3D par Fenetre Glissante)"]
-```
-
----
-
-## 📥 Entrées & 📤 Sorties
-
-* **Entrée** : Volumes 3D `.npy` rééchantillonnés et masques Ground Truth correspondants.
-* **Sortie** : 
-  * Poids du modèle entraîné (`best_unet3d.pth` ou `best_model.h5`).
-  * Volume 3D prédictif (`pred_mask.npy`) contenant les probabilités voxéliques entre 0.0 et 1.0.
-
----
-
-## 🚀 Exemple d'Utilisation Rapide
+### `NNUNetPreprocessor`
+Calcule les statistiques d'intensité du dataset (percentile 0.5/99.5, moyenne, écart-type)
+et détermine le patch size optimal selon la VRAM disponible.
 
 ```python
-from src.O5_deep_learning.unet_3d import build_unet_3d
-from src.O5_deep_learning.predict import DeepLearningPredictor
+from src.O5_deep_learning.nnunet_pe import NNUNetPreprocessor
 
-# 1. Instancier le modèle U-Net 3D
-model = build_unet_3d(input_shape=(64, 64, 64, 1), num_classes=1)
+prep = NNUNetPreprocessor(processed_dir="data/processed", vram_gb=8.0)
+stats = prep.analyse_dataset()          # calcule les stats
+prep.save_stats("results/deep_learning/preprocessor_stats.json")
 
-# 2. Réaliser la prédiction 3D sur un patient complet
-predictor = DeepLearningPredictor(model_path="models/deep_learning/best_unet3d.pth")
-predicted_mask_3d = predictor.predict_volume(patient_volume_npy)
+vol_norm = prep.normalize(volume_npy)   # clip percentile + z-score
 ```
+
+### `NNUNetModel`
+U-Net 3D PyTorch : 5 niveaux d'encodeur/décodeur, InstanceNorm3d, LeakyReLU, sortie sigmoid.
+
+```python
+from src.O5_deep_learning.nnunet_pe import NNUNetModel
+
+model = NNUNetModel(in_channels=1, features=32, depth=5, dropout=0.2)
+print(f"{model.count_parameters():,} paramètres")
+```
+
+### `NNUNetDataset`
+Dataset PyTorch patch-based avec oversampling des voxels positifs et augmentation 3D complète.
+
+```python
+from src.O5_deep_learning.nnunet_pe import NNUNetDataset
+
+ds = NNUNetDataset(
+    patient_ids=["PAT001", "PAT002"],
+    preprocessor=prep,
+    processed_dir="data/processed",
+    patch_size=(64, 128, 128),
+    augment=True,
+    patches_per_vol=50,
+)
+```
+
+### `NNUNetTrainer`
+Entraînement CV 5-folds groupée par patient (réutilise `fold_assignments.csv` d'O4).
+Early stopping sur Dice val, checkpoint par fold dans `results/deep_learning/`.
+
+```python
+from src.O5_deep_learning.nnunet_pe import NNUNetTrainer
+
+trainer = NNUNetTrainer(
+    processed_dir="data/processed",
+    folds_csv="results/classical_classifier/models/folds/fold_assignments.csv",
+    output_dir="results/deep_learning",
+    batch_size=2,       # ajuster selon la VRAM
+    epochs=200,
+    patience=30,
+)
+results = trainer.train_all_folds()
+```
+
+### `NNUNetPredictor`
+Inférence sliding window gaussien. Utilise le modèle du fold dont le patient était en validation
+(démo honnête).
+
+```python
+from src.O5_deep_learning.nnunet_pe import NNUNetPredictor
+
+predictor = NNUNetPredictor(output_dir="results/deep_learning")
+result = predictor.predict_patient("PAT001", processed_dir="data/processed")
+
+print(f"Volume thrombus : {result['volume_mm3']:.1f} mm³")
+print(f"Dice vs GT      : {result['dice_score']:.4f}")
+
+# Évaluation complète sur tous les patients (out-of-fold)
+df = predictor.evaluate_all_folds()
+```
+
+---
+
+## Usage CLI
+
+```powershell
+# Smoke test CPU (quelques secondes, sans données réelles)
+python -m src.O5_deep_learning.nnunet_pe test
+
+# Entraînement complet 5-folds (nécessite data/processed/ peuplé)
+python -m src.O5_deep_learning.nnunet_pe train
+
+# Prédiction sur un patient
+python -m src.O5_deep_learning.nnunet_pe predict PAT001
+```
+
+---
+
+## Installation de PyTorch
+
+PyTorch n'est pas dans `requirements.txt` (trop lourd, dépend du hardware).
+
+```powershell
+# CPU-only (compatible avec toutes les machines)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# GPU CUDA 11.8
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+# GPU CUDA 12.1
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+```
+
+---
+
+## Sorties de l'entraînement (`results/deep_learning/`)
+
+| Fichier | Contenu |
+|---|---|
+| `preprocessor_stats.json` | Statistiques HU du dataset (percentiles, mean, std, patch_size) |
+| `fold_X_best.pth` | Checkpoint du meilleur modèle pour le fold X |
+| `fold_X_history.json` | Courbes loss train/val et Dice val par époque |
+| `cv_summary.json` | Résumé des 5 folds (Dice val moyen, epochs) |
+| `oof_predictions_dl.csv` | Prédictions out-of-fold (Dice, volume mm³, détection) |
+
+---
+
+## Métriques d'évaluation
+
+Deux métriques primaires (invariant de comparaison avec O4) :
+
+| Métrique | Description | Cible |
+|---|---|---|
+| **Dice Score voxel** | Chevauchement GT ↔ prédiction | ≥ 0.30 sur les porteurs |
+| **Sensibilité patient @ 4 FP/patient** | Patients détectés (même protocole O4) | ≥ 60 % (vs 45 % pour O4) |
+
+---
+
+## Fichiers archivés (`*_keras.py`)
+
+Les fichiers suivants sont des archives de l'implémentation TensorFlow/Keras initiale.
+Ils ne font plus partie du pipeline actif mais sont conservés pour référence.
+
+- `unet_3d_keras.py` — U-Net 3D Keras (BatchNorm, sigmoid)
+- `cnn_3d_keras.py` — CNN 3D Keras pour classification de patchs
+- `cnn_2d_keras.py` — CNN 2D Keras slice-by-slice
+- `data_generator_keras.py` — Générateur Keras (`tf.keras.utils.Sequence`)
+- `train_keras.py` — Entraîneur Keras
+- `predict_keras.py` — Prédicteur Keras
+
+---
+
+*Dernière mise à jour : 12 novembre 2026*
